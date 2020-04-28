@@ -3,9 +3,7 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-# Update the VARIANT arg in devcontainer.json to pick a Python version: 3, 3.8, 3.7, 3.6
-ARG VARIANT=3
-FROM python:${VARIANT}
+FROM python:3.8
 
 # If you would prefer to have multiple Python versions in your container,
 # replace the FROM statement above with the following:
@@ -30,7 +28,7 @@ ARG USER_GID=$USER_UID
 # COPY requirements.txt /tmp/pip-tmp/
 
 # Set to false to skip installing zsh and Oh My ZSH!
-ARG INSTALL_ZSH="true"
+ARG INSTALL_ZSH="false"
 
 # Location and expected SHA for common setup script - SHA generated on release
 ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/v0.112.0/script-library/common-debian.sh"
@@ -55,7 +53,8 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
+ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
 USER $USERNAME
-
-RUN pip3 install --user pipenv==2018.11.26
-ENV PIPENV_VENV_IN_PROJECT=1
+RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.5
+ENV PATH="/home/$USERNAME/.poetry/bin:$PATH" \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
