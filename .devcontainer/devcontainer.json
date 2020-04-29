@@ -12,13 +12,15 @@
         "editor.detectIndentation": false,
         "editor.formatOnSave": true,
         "terminal.integrated.shell.linux": "/bin/bash",
+        "pyright.openFilesOnly": false
     },
 
     // Add the IDs of extensions you want installed when the container is created.
     "extensions": [
 		"editorconfig.editorconfig",
 		"ms-python.python",
-		"bungcip.better-toml"
+		"bungcip.better-toml",
+		"ms-pyright.pyright"
 	],
 
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
