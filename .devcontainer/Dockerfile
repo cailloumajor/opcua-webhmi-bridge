@@ -53,8 +53,12 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
+
 USER $USERNAME
+
+ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.5
+
 ENV PATH="/home/$USERNAME/.poetry/bin:$PATH" \
     POETRY_VIRTUALENVS_IN_PROJECT=true
