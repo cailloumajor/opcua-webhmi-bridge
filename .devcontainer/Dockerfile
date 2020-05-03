@@ -58,7 +58,8 @@ USER $USERNAME
 
 ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.5
+RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.5 \
+    && curl https://pre-commit.com/install-local.py | python -
 
-ENV PATH="/home/$USERNAME/.poetry/bin:$PATH" \
+ENV PATH="/home/$USERNAME/.poetry/bin:/home/$USERNAME/bin:$PATH" \
     POETRY_VIRTUALENVS_IN_PROJECT=true
