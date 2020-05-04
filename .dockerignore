@@ -1,0 +1,4 @@
+*
+!pyproject.toml
+!poetry.lock
+!opcua_websocket_bridge.py
