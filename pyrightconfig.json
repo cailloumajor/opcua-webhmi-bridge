@@ -1,5 +1,7 @@
 {
     "ignore": [
+        "typeshed",
         "typings"
-    ]
+    ],
+    "typeshedPath": "typeshed"
 }
