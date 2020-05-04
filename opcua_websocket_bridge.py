@@ -94,32 +94,27 @@ async def opcua_task(hub: Hub) -> None:
             logging.info("Connection retry in %d seconds...", OPC_RETRY_DELAY)
             await asyncio.sleep(OPC_RETRY_DELAY)
         retrying = False
-        connected = False
         client = asyncua.Client(url="opc.tcp://192.168.50.1:4840/")
         client.session_timeout = 30000
         try:
-            await client.connect()
-            connected = True
-            ns = await client.get_namespace_index(SIEMENS_NAMESPACE_URI)
-            sim_types_var = client.get_node(ua.NodeId(6001, ns))
-            await client.load_type_definitions([sim_types_var])
-            var = client.get_node(ua.NodeId('"dbLineSupervision"."machine"', ns))
-            subscription = await client.create_subscription(
-                1000, OPCUASubscriptionHandler(hub)
-            )
-            await subscription.subscribe_data_change(var)
-            server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
-            while True:
-                await asyncio.sleep(1)
-                await server_state.get_data_value()
+            async with client:
+                ns = await client.get_namespace_index(SIEMENS_NAMESPACE_URI)
+                sim_types_var = client.get_node(ua.NodeId(6001, ns))
+                await client.load_type_definitions([sim_types_var])
+                var = client.get_node(ua.NodeId('"dbLineSupervision"."machine"', ns))
+                subscription = await client.create_subscription(
+                    1000, OPCUASubscriptionHandler(hub)
+                )
+                await subscription.subscribe_data_change(var)
+                server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
+                while True:
+                    await asyncio.sleep(1)
+                    await server_state.get_data_value()
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             logging.error("OPC-UA client error: %s %s", exc.__class__.__name__, exc)
             retrying = True
-        finally:
-            if connected:
-                await client.disconnect()
 
 
 async def websockets_handler(
