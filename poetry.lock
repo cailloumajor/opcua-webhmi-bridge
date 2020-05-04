@@ -99,7 +99,7 @@ version = "1.14.0"
 pycparser = "*"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Composable command line interface toolkit"
 name = "click"
 optional = false
@@ -398,7 +398,7 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "ee8d34f3a45d0c5c58824acb727be4c14cdf864129365ae5eb4fd9ef3b51aa80"
+content-hash = "0dd516419bdde766b4581b387da9cb328547896f513fc38f9c10fcc390da0e7d"
 python-versions = "^3.8"
 
 [metadata.files]

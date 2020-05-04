@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, TypeVar
 
 import asyncua
+import click
 import websockets
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
@@ -87,21 +88,21 @@ def subscription(hub: Hub):
         hub.subscriptions.remove(queue)
 
 
-async def opcua_task(hub: Hub) -> None:
+async def opcua_task(hub: Hub, server_url: str, monitor_node: str) -> None:
     retrying = False
     while True:
         if retrying:
             logging.info("Connection retry in %d seconds...", OPC_RETRY_DELAY)
             await asyncio.sleep(OPC_RETRY_DELAY)
         retrying = False
-        client = asyncua.Client(url="opc.tcp://192.168.50.1:4840/")
+        client = asyncua.Client(url=server_url)
         client.session_timeout = 30000
         try:
             async with client:
                 ns = await client.get_namespace_index(SIEMENS_NAMESPACE_URI)
                 sim_types_var = client.get_node(ua.NodeId(6001, ns))
                 await client.load_type_definitions([sim_types_var])
-                var = client.get_node(ua.NodeId('"dbLineSupervision"."machine"', ns))
+                var = client.get_node(ua.NodeId(monitor_node, ns))
                 subscription = await client.create_subscription(
                     1000, OPCUASubscriptionHandler(hub)
                 )
@@ -179,12 +180,42 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
     asyncio.create_task(shutdown(loop))
 
 
-def main():
-    logging.basicConfig(level=logging.INFO)
+@click.command()
+@click.option(
+    "--opc-server-url", required=True, help="URL of the OPC-UA server to connect"
+)
+@click.option("--opc-monitor-node", required=True, help="ID of OPC-UA node to monitor")
+@click.option(
+    "--ws-host",
+    default="0.0.0.0",
+    help="WebSocket server bind address (default: 0.0.0.0)",
+)
+@click.option("--ws-port", default=3000, help="WebSocket server port (default: 3000)")
+@click.option(
+    "-v", "--verbose", is_flag=True, help="Be more verbose (debugging informations)"
+)
+def main(
+    opc_server_url: str,
+    opc_monitor_node: str,
+    ws_host: str,
+    ws_port: int,
+    verbose: bool,
+):
+    """Start a WebSocket server and inform clients about OPC-UA data changes."""
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(name)s:%(message)s",
+        level=logging.DEBUG if verbose else logging.INFO,
+    )
+    if not verbose:
+        for logger in [
+            "asyncua.common.subscription",
+            "asyncua.client.ua_client.UASocketProtocol",
+        ]:
+            logging.getLogger(logger).setLevel(logging.ERROR)
 
     hub = Hub()
     bound_ws_handler = functools.partial(websockets_handler, hub=hub)
-    start_ws_server = websockets.serve(bound_ws_handler, "0.0.0.0", 3000)
+    start_ws_server = websockets.serve(bound_ws_handler, ws_host, ws_port)
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)

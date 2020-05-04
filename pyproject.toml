@@ -9,6 +9,7 @@ license = "MIT"
 python = "^3.8"
 asyncua = "^0.8.2"
 websockets = "^8.1"
+Click = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
