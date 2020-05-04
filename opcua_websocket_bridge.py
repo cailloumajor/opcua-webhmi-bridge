@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 else:
     BaseQueue = asyncio.Queue
 
-OPC_RETRY_DELAY = 5
 SIEMENS_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
@@ -98,12 +97,14 @@ class OPCUASubscriptionHandler:
         )
 
 
-async def opcua_task(hub: Hub, server_url: str, monitor_node: str) -> None:
+async def opcua_task(
+    hub: Hub, server_url: str, monitor_node: str, retry_delay: int
+) -> None:
     retrying = False
     while True:
         if retrying:
-            logging.info("Connection retry in %d seconds...", OPC_RETRY_DELAY)
-            await asyncio.sleep(OPC_RETRY_DELAY)
+            logging.info("Connection retry in %d seconds...", retry_delay)
+            await asyncio.sleep(retry_delay)
         retrying = False
         client = asyncua.Client(url=server_url)
         try:
@@ -195,6 +196,11 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
 )
 @click.option("--opc-monitor-node", required=True, help="ID of OPC-UA node to monitor")
 @click.option(
+    "--opc-retry-delay",
+    default=5,
+    help="Delay in seconds to retry OPC-UA connection (default: 5)",
+)
+@click.option(
     "--ws-host",
     default="0.0.0.0",
     help="WebSocket server bind address (default: 0.0.0.0)",
@@ -206,6 +212,7 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
 def main(
     opc_server_url: str,
     opc_monitor_node: str,
+    opc_retry_delay: int,
     ws_host: str,
     ws_port: int,
     verbose: bool,
@@ -236,7 +243,9 @@ def main(
 
     try:
         loop.run_until_complete(start_ws_server)
-        loop.create_task(opcua_task(hub, opc_server_url, opc_monitor_node))
+        loop.create_task(
+            opcua_task(hub, opc_server_url, opc_monitor_node, opc_retry_delay)
+        )
         loop.run_forever()
     finally:
         loop.close()
