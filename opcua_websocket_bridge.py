@@ -47,11 +47,31 @@ class SingleElemOverwriteQueue(BaseQueue):
 
 class Hub:
     def __init__(self) -> None:
-        self.subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
+        self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
+        self._last_message = None
+
+    def add_subscription(self, subscription: SingleElemOverwriteQueue[str]):
+        self._subscriptions.add(subscription)
+        if self._last_message:
+            subscription.put_nowait(self._last_message)
+
+    def remove_subscription(self, subscription: SingleElemOverwriteQueue[str]):
+        self._subscriptions.remove(subscription)
 
     def publish(self, message: str):
-        for queue in self.subscriptions:
+        self._last_message = message
+        for queue in self._subscriptions:
             queue.put_nowait(message)
+
+
+@contextmanager
+def subscription(hub: Hub):
+    queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
+    hub.add_subscription(queue)
+    try:
+        yield queue
+    finally:
+        hub.remove_subscription(queue)
 
 
 class OPCUAEncoder(json.JSONEncoder):
@@ -76,16 +96,6 @@ class OPCUASubscriptionHandler:
                 cls=OPCUAEncoder,
             )
         )
-
-
-@contextmanager
-def subscription(hub: Hub):
-    queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
-    hub.subscriptions.add(queue)
-    try:
-        yield queue
-    finally:
-        hub.subscriptions.remove(queue)
 
 
 async def opcua_task(hub: Hub, server_url: str, monitor_node: str) -> None:
