@@ -110,9 +110,7 @@ async def opcua_task(hub: Hub) -> None:
                 while True:
                     await asyncio.sleep(1)
                     await server_state.get_data_value()
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:
+        except (OSError, asyncio.TimeoutError) as exc:
             logging.error("OPC-UA client error: %s %s", exc.__class__.__name__, exc)
             retrying = True
 
