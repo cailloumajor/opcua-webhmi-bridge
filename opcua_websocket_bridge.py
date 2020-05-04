@@ -32,7 +32,7 @@ class SingleElemOverwriteQueue(BaseQueue):
     It stores only one element and overwrites it when putting.
     """
 
-    def _init(self, maxsize: int):
+    def _init(self, maxsize: int):  # noqa: U100
         self._queue = None
 
     def _put(self, item: _T):
@@ -84,7 +84,7 @@ class OPCUASubscriptionHandler:
     def __init__(self, hub: Hub) -> None:
         self._hub = hub
 
-    def datachange_notification(
+    def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
     ):
         node_id = node.nodeid.Identifier.replace('"', "")
@@ -126,7 +126,7 @@ async def opcua_task(
             retrying = True
 
 
-async def websockets_handler(
+async def websockets_handler(  # noqa: U100
     websocket: WebSocketServerProtocol, path: str, hub: Hub
 ) -> None:
     client_address = websocket.remote_address[0]
