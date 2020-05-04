@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 else:
     BaseQueue = asyncio.Queue
 
-SIEMENS_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
+SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
 class SingleElemOverwriteQueue(BaseQueue):
@@ -109,7 +109,7 @@ async def opcua_task(
         client = asyncua.Client(url=server_url)
         try:
             async with client:
-                ns = await client.get_namespace_index(SIEMENS_NAMESPACE_URI)
+                ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
                 sim_types_var = client.get_node(ua.NodeId(6001, ns))
                 await client.load_type_definitions([sim_types_var])
                 var = client.get_node(ua.NodeId(monitor_node, ns))
