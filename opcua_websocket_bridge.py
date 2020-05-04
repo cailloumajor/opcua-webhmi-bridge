@@ -96,7 +96,6 @@ async def opcua_task(hub: Hub, server_url: str, monitor_node: str) -> None:
             await asyncio.sleep(OPC_RETRY_DELAY)
         retrying = False
         client = asyncua.Client(url=server_url)
-        client.session_timeout = 30000
         try:
             async with client:
                 ns = await client.get_namespace_index(SIEMENS_NAMESPACE_URI)
@@ -227,7 +226,7 @@ def main(
 
     try:
         loop.run_until_complete(start_ws_server)
-        loop.create_task(opcua_task(hub))
+        loop.create_task(opcua_task(hub, opc_server_url, opc_monitor_node))
         loop.run_forever()
     finally:
         loop.close()
