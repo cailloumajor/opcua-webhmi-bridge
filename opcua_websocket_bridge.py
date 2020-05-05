@@ -192,20 +192,35 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
 
 @click.command()
 @click.option(
-    "--opc-server-url", required=True, help="URL of the OPC-UA server to connect"
+    "--opc-server-url",
+    required=True,
+    envvar="OPC_SERVER_URL",
+    help="URL of the OPC-UA server to connect",
 )
-@click.option("--opc-monitor-node", required=True, help="ID of OPC-UA node to monitor")
+@click.option(
+    "--opc-monitor-node",
+    required=True,
+    envvar="OPC_MONITOR_NODE",
+    help="ID of OPC-UA node to monitor",
+)
 @click.option(
     "--opc-retry-delay",
     default=5,
+    envvar="OPC_RETRY_DELAY",
     help="Delay in seconds to retry OPC-UA connection (default: 5)",
 )
 @click.option(
     "--ws-host",
     default="0.0.0.0",
+    envvar="WS_HOST",
     help="WebSocket server bind address (default: 0.0.0.0)",
 )
-@click.option("--ws-port", default=3000, help="WebSocket server port (default: 3000)")
+@click.option(
+    "--ws-port",
+    default=3000,
+    envvar="WS_PORT",
+    help="WebSocket server port (default: 3000)",
+)
 @click.option(
     "-v", "--verbose", is_flag=True, help="Be more verbose (debugging informations)"
 )
