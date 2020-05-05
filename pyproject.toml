@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-asyncua = "^0.8.2"
+asyncua = { git="https://github.com/FreeOpcUa/opcua-asyncio.git", rev="5132c4ed" }
 websockets = "^8.1"
 Click = "^7.1.2"
 

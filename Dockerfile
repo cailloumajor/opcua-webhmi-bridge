@@ -2,7 +2,11 @@ FROM python:3.8-slim as base
 
 LABEL maintainer "Arnaud Rocher <arnaud.roche3@gmail.com>"
 
-RUN python -m pip install --upgrade pip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        wget \
+	&& rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --upgrade pip
 
 RUN useradd --user-group --system --create-home --no-log-init pythonapp \
     && mkdir /app \
@@ -12,9 +16,11 @@ WORKDIR /app
 
 FROM base as builder
 
-ENV PATH "/home/pythonapp/.local/bin:$PATH"
+RUN wget -q -O /tmp/get-poetry.py \
+        https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py \
+    && python /tmp/get-poetry.py --version=1.0.5
 
-RUN pip install --user poetry==1.0.5
+ENV PATH "/home/pythonapp/.poetry/bin:$PATH"
 
 COPY --chown=pythonapp:pythonapp pyproject.toml poetry.lock ./
 
