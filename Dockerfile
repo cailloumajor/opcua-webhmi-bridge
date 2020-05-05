@@ -2,6 +2,8 @@ FROM python:3.8-slim as base
 
 LABEL maintainer "Arnaud Rocher <arnaud.roche3@gmail.com>"
 
+ENV PYTHONUNBUFFERED 1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         wget \
