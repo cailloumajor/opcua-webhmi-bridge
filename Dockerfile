@@ -1,4 +1,4 @@
-FROM python:3.8 as base
+FROM python:3.8-slim as base
 
 LABEL maintainer "Arnaud Rocher <arnaud.roche3@gmail.com>"
 
@@ -12,16 +12,15 @@ WORKDIR /app
 
 FROM base as builder
 
-ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.5
-ENV PATH "/home/pythonapp/.poetry/bin:$PATH"
+ENV PATH "/home/pythonapp/.local/bin:$PATH"
+
+RUN pip install --user poetry==1.0.5
 
 COPY --chown=pythonapp:pythonapp pyproject.toml poetry.lock ./
 
 # hadolint ignore=SC1091
 RUN python -m venv .venv \
-    && source .venv/bin/activate \
+    && . .venv/bin/activate \
     && poetry install --no-dev --no-interaction
 
 COPY --chown=pythonapp:pythonapp . ./
