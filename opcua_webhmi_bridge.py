@@ -103,7 +103,7 @@ async def opcua_task(
     retrying = False
     while True:
         if retrying:
-            logging.info("Connection retry in %d seconds...", retry_delay)
+            logging.info("OPC-UA connection retry in %d seconds...", retry_delay)
             await asyncio.sleep(retry_delay)
         retrying = False
         client = asyncua.Client(url=server_url)
