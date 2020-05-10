@@ -110,9 +110,11 @@ async def opcua_task(
         try:
             async with client:
                 ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
-                sim_types_var = client.get_node(ua.NodeId(6001, ns))
+                sim_types_var = await client.nodes.opc_binary.get_child(
+                    f"{ns}:SimaticStructures"
+                )
                 await client.load_type_definitions([sim_types_var])
-                var = client.get_node(ua.NodeId(monitor_node, ns))
+                var = client.get_node(f"ns={ns};s={monitor_node}")
                 subscription = await client.create_subscription(
                     1000, OPCUASubscriptionHandler(hub)
                 )
