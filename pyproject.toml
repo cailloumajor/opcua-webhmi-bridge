@@ -9,7 +9,7 @@ license = "MIT"
 python = "^3.8"
 asyncua = { git="https://github.com/FreeOpcUa/opcua-asyncio.git", rev="5132c4ed" }
 websockets = "^8.1"
-Click = "^7.1.2"
+typed-argument-parser = "^1.4.3"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"

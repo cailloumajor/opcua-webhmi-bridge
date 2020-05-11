@@ -7,14 +7,16 @@ import functools
 import json
 import logging
 import signal
+from argparse import RawDescriptionHelpFormatter
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, TypeVar
 
 import asyncua
-import click
 import websockets
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
+from opcua_webhmi_bridge.config import Config
+from tap import Tap
 from websockets import WebSocketServerProtocol
 
 _T = TypeVar("_T")
@@ -97,16 +99,16 @@ class OPCUASubscriptionHandler:
         )
 
 
-async def opcua_task(
-    hub: Hub, server_url: str, monitor_node: str, retry_delay: int
-) -> None:
+async def opcua_task(config: Config, hub: Hub) -> None:
     retrying = False
     while True:
         if retrying:
-            logging.info("OPC-UA connection retry in %d seconds...", retry_delay)
-            await asyncio.sleep(retry_delay)
+            logging.info(
+                "OPC-UA connection retry in %d seconds...", config.opc_retry_delay
+            )
+            await asyncio.sleep(config.opc_retry_delay)
         retrying = False
-        client = asyncua.Client(url=server_url)
+        client = asyncua.Client(url=config.opc_server_url)
         try:
             async with client:
                 ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
@@ -114,7 +116,7 @@ async def opcua_task(
                     f"{ns}:SimaticStructures"
                 )
                 await client.load_type_definitions([sim_types_var])
-                var = client.get_node(f"ns={ns};s={monitor_node}")
+                var = client.get_node(f"ns={ns};s={config.opc_monitor_node}")
                 subscription = await client.create_subscription(
                     1000, OPCUASubscriptionHandler(hub)
                 )
@@ -192,54 +194,25 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
     asyncio.create_task(shutdown(loop))
 
 
-@click.command()
-@click.option(
-    "--opc-server-url",
-    required=True,
-    envvar="OPC_SERVER_URL",
-    help="URL of the OPC-UA server to connect",
-)
-@click.option(
-    "--opc-monitor-node",
-    required=True,
-    envvar="OPC_MONITOR_NODE",
-    help="ID of OPC-UA node to monitor",
-)
-@click.option(
-    "--opc-retry-delay",
-    default=5,
-    envvar="OPC_RETRY_DELAY",
-    help="Delay in seconds to retry OPC-UA connection (default: 5)",
-)
-@click.option(
-    "--ws-host",
-    default="0.0.0.0",
-    envvar="WS_HOST",
-    help="WebSocket server bind address (default: 0.0.0.0)",
-)
-@click.option(
-    "--ws-port",
-    default=3000,
-    envvar="WS_PORT",
-    help="WebSocket server port (default: 3000)",
-)
-@click.option(
-    "-v", "--verbose", is_flag=True, help="Be more verbose (debugging informations)"
-)
-def main(
-    opc_server_url: str,
-    opc_monitor_node: str,
-    opc_retry_delay: int,
-    ws_host: str,
-    ws_port: int,
-    verbose: bool,
-):
-    """Start a WebSocket server and inform clients about OPC-UA data changes."""
+def main():
+    class ArgumentParser(Tap):
+        verbose: bool = False
+
+    parser = ArgumentParser(
+        description="Bridge between OPC-UA server and web-based HMI",
+        epilog=f"Environment variables:\n{Config.generate_help()}",
+        formatter_class=RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args()
+
+    config = Config()
+
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s:%(message)s",
-        level=logging.DEBUG if verbose else logging.INFO,
+        level=logging.DEBUG if args.verbose else logging.INFO,
     )
-    if not verbose:
+    if not args.verbose:
         for logger in [
             "asyncua.common.subscription",
             "asyncua.client.ua_client.UASocketProtocol",
@@ -248,7 +221,9 @@ def main(
 
     hub = Hub()
     bound_ws_handler = functools.partial(websockets_handler, hub=hub)
-    start_ws_server = websockets.serve(bound_ws_handler, ws_host, ws_port)
+    start_ws_server = websockets.serve(
+        bound_ws_handler, config.websocket_host, config.websocket_port
+    )
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
@@ -260,9 +235,7 @@ def main(
 
     try:
         loop.run_until_complete(start_ws_server)
-        loop.create_task(
-            opcua_task(hub, opc_server_url, opc_monitor_node, opc_retry_delay)
-        )
+        loop.create_task(opcua_task(config, hub))
         loop.run_forever()
     finally:
         loop.close()
