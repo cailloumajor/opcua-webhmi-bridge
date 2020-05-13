@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.8
 # pyright: strict
-from __future__ import annotations
 
 import asyncio
 import functools
@@ -8,71 +7,18 @@ import json
 import logging
 import signal
 from argparse import RawDescriptionHelpFormatter
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, TypeVar
+from typing import Any, Dict, Optional
 
 import asyncua
 import websockets
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 from opcua_webhmi_bridge.config import Config
+from opcua_webhmi_bridge.pubsub import Hub
 from tap import Tap
 from websockets import WebSocketServerProtocol
 
-_T = TypeVar("_T")
-
-if TYPE_CHECKING:
-    BaseQueue = asyncio.Queue[_T]
-else:
-    BaseQueue = asyncio.Queue
-
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
-
-
-class SingleElemOverwriteQueue(BaseQueue):
-    """A subclass of asyncio.Queue.
-    It stores only one element and overwrites it when putting.
-    """
-
-    def _init(self, maxsize: int):  # noqa: U100
-        self._queue = None
-
-    def _put(self, item: _T):
-        self._queue = item
-
-    def _get(self) -> _T:
-        item = self._queue
-        self._queue = None
-        return item
-
-
-class Hub:
-    def __init__(self) -> None:
-        self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
-        self._last_message = None
-
-    def add_subscription(self, subscription: SingleElemOverwriteQueue[str]):
-        self._subscriptions.add(subscription)
-        if self._last_message:
-            subscription.put_nowait(self._last_message)
-
-    def remove_subscription(self, subscription: SingleElemOverwriteQueue[str]):
-        self._subscriptions.remove(subscription)
-
-    def publish(self, message: str):
-        self._last_message = message
-        for queue in self._subscriptions:
-            queue.put_nowait(message)
-
-
-@contextmanager
-def subscription(hub: Hub):
-    queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
-    hub.add_subscription(queue)
-    try:
-        yield queue
-    finally:
-        hub.remove_subscription(queue)
 
 
 class OPCUAEncoder(json.JSONEncoder):
@@ -135,7 +81,7 @@ async def websockets_handler(  # noqa: U100
 ) -> None:
     client_address = websocket.remote_address[0]
     logging.info("WebSocket client connected from %s", client_address)
-    with subscription(hub) as queue:
+    with hub.subscribe() as queue:
         task_msg_wait = asyncio.create_task(queue.get())
         task_client_disconnect = asyncio.create_task(websocket.wait_closed())
         while True:
