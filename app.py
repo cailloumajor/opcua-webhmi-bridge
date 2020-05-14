@@ -3,77 +3,17 @@
 
 import asyncio
 import functools
-import json
 import logging
 import signal
 from argparse import RawDescriptionHelpFormatter
 from typing import Any, Dict, Optional
 
-import asyncua
 import websockets
-from asyncua import ua
-from asyncua.common.subscription import SubscriptionItemData
 from opcua_webhmi_bridge.config import Config
+from opcua_webhmi_bridge.opcua import UAClient
 from opcua_webhmi_bridge.pubsub import Hub
 from tap import Tap
 from websockets import WebSocketServerProtocol
-
-SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
-
-
-class OPCUAEncoder(json.JSONEncoder):
-    def default(self, o: Any):
-        if hasattr(o, "ua_types"):
-            return {elem: getattr(o, elem) for elem, _ in o.ua_types}
-        return super().default(o)
-
-
-class OPCUASubscriptionHandler:
-    def __init__(self, hub: Hub) -> None:
-        self._hub = hub
-
-    def datachange_notification(  # noqa: U100
-        self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
-    ):
-        node_id = node.nodeid.Identifier.replace('"', "")
-        logging.debug("datachange_notification for %s %s", node, val)
-        self._hub.publish(
-            json.dumps(
-                {"type": "opc_data_change", "node": node_id, "data": val},
-                cls=OPCUAEncoder,
-            )
-        )
-
-
-async def opcua_task(config: Config, hub: Hub) -> None:
-    retrying = False
-    while True:
-        if retrying:
-            logging.info(
-                "OPC-UA connection retry in %d seconds...", config.opc_retry_delay
-            )
-            await asyncio.sleep(config.opc_retry_delay)
-        retrying = False
-        client = asyncua.Client(url=config.opc_server_url)
-        try:
-            async with client:
-                ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
-                sim_types_var = await client.nodes.opc_binary.get_child(
-                    f"{ns}:SimaticStructures"
-                )
-                await client.load_type_definitions([sim_types_var])
-                var = client.get_node(f"ns={ns};s={config.opc_monitor_node}")
-                subscription = await client.create_subscription(
-                    1000, OPCUASubscriptionHandler(hub)
-                )
-                await subscription.subscribe_data_change(var)
-                server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
-                while True:
-                    await asyncio.sleep(1)
-                    await server_state.get_data_value()
-        except (OSError, asyncio.TimeoutError) as exc:
-            logging.error("OPC-UA client error: %s %s", exc.__class__.__name__, exc)
-            retrying = True
 
 
 async def websockets_handler(  # noqa: U100
@@ -152,8 +92,6 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
-    config = Config()
-
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s:%(message)s",
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -165,7 +103,9 @@ def main():
         ]:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
+    config = Config()
     hub = Hub()
+    opc_client = UAClient(config, hub)
     bound_ws_handler = functools.partial(websockets_handler, hub=hub)
     start_ws_server = websockets.serve(
         bound_ws_handler, config.websocket_host, config.websocket_port
@@ -181,7 +121,7 @@ def main():
 
     try:
         loop.run_until_complete(start_ws_server)
-        loop.create_task(opcua_task(config, hub))
+        loop.create_task(opc_client.task())
         loop.run_forever()
     finally:
         loop.close()
