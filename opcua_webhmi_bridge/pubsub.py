@@ -41,14 +41,6 @@ class Hub:
         self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
         self._last_message = ""
 
-    def _add_subscription(self, subscription: SingleElemOverwriteQueue[str]) -> None:
-        self._subscriptions.add(subscription)
-        if self._last_message:
-            subscription.put_nowait(self._last_message)
-
-    def _remove_subscription(self, subscription: SingleElemOverwriteQueue[str]) -> None:
-        self._subscriptions.remove(subscription)
-
     def publish(self, message: str) -> None:
         self._last_message = message
         for queue in self._subscriptions:
@@ -57,8 +49,10 @@ class Hub:
     @contextmanager
     def subscribe(self) -> Iterator[SingleElemOverwriteQueue[str]]:
         queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
-        self._add_subscription(queue)
+        self._subscriptions.add(queue)
+        if self._last_message:
+            queue.put_nowait(self._last_message)
         try:
             yield queue
         finally:
-            self._remove_subscription(queue)
+            self._subscriptions.remove(queue)
