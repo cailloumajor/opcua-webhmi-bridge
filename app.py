@@ -109,7 +109,7 @@ def main() -> None:
         bound_ws_handler, config.websocket_host, config.websocket_port
     )
     loop = asyncio.get_event_loop()
-    loop.set_debug(True)
+    loop.set_debug(args.verbose)
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
     for s in signals:
         loop.add_signal_handler(
