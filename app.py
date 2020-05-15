@@ -80,14 +80,16 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
 
 def main() -> None:
     class ArgumentParser(Tap):
-        verbose: bool = False
+        verbose: bool = False  # Be more verbose (print debug informations)
+
+        def add_arguments(self) -> None:
+            self.add_argument("-v", "--verbose")
 
     parser = ArgumentParser(
         description="Bridge between OPC-UA server and web-based HMI",
         epilog=f"Environment variables:\n{Config.generate_help()}",
         formatter_class=RawDescriptionHelpFormatter,
     )
-    parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
     logging.basicConfig(
