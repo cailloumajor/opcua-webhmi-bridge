@@ -1,7 +1,6 @@
-# pyright: strict
 import dataclasses
 import os
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar, Union
 
 _T = TypeVar("_T")
 
@@ -10,7 +9,7 @@ class EnvError(ValueError):
     """Raised when an environment variable or if a required environment variable is unset."""
 
 
-def config_field(help: str, default: Optional[_T] = None) -> _T:
+def config_field(help: str, default: Optional[_T] = None) -> Union[_T, Any]:
     metadata = {"help": help}
     if default is None:
         return dataclasses.field(metadata=metadata)

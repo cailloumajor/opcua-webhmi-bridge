@@ -16,8 +16,7 @@
     "extensions": [
 		"editorconfig.editorconfig",
 		"ms-python.python",
-		"bungcip.better-toml",
-		"ms-pyright.pyright"
+		"bungcip.better-toml"
 	],
 
     // Use 'forwardPorts' to make a list of ports inside the container available locally.

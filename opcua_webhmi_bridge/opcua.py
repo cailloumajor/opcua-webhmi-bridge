@@ -1,5 +1,3 @@
-# pyright: strict
-
 import asyncio
 import json
 import logging
@@ -16,7 +14,7 @@ SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
 class OPCUAEncoder(json.JSONEncoder):
-    def default(self, o: Any):
+    def default(self, o: Any) -> Any:
         if hasattr(o, "ua_types"):
             return {elem: getattr(o, elem) for elem, _ in o.ua_types}
         return super().default(o)
@@ -29,7 +27,7 @@ class UAClient:
 
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
-    ):
+    ) -> None:
         node_id = node.nodeid.Identifier.replace('"', "")
         logging.debug("datachange_notification for %s %s", node, val)
         self._hub.publish(

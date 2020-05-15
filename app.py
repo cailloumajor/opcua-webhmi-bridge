@@ -1,6 +1,3 @@
-#!/usr/bin/env python3.8
-# pyright: strict
-
 import asyncio
 import functools
 import logging
@@ -9,11 +6,12 @@ from argparse import RawDescriptionHelpFormatter
 from typing import Any, Dict, Optional
 
 import websockets
+from tap import Tap
+from websockets import WebSocketServerProtocol
+
 from opcua_webhmi_bridge.config import Config
 from opcua_webhmi_bridge.opcua import UAClient
 from opcua_webhmi_bridge.pubsub import Hub
-from tap import Tap
-from websockets import WebSocketServerProtocol
 
 
 async def websockets_handler(  # noqa: U100
@@ -68,7 +66,7 @@ async def shutdown(
     loop.stop()
 
 
-def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
+def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
     # context["message"] will always be there; but context["exception"] may not
     try:
         exc: Exception = context["exception"]
@@ -80,7 +78,7 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]):
     asyncio.create_task(shutdown(loop))
 
 
-def main():
+def main() -> None:
     class ArgumentParser(Tap):
         verbose: bool = False
 
