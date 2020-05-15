@@ -7,7 +7,6 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         wget \
-	&& rm -rf /var/lib/apt/lists/* \
     && python -m pip install --upgrade pip
 
 RUN useradd --user-group --system --create-home --no-log-init pythonapp \
@@ -37,4 +36,4 @@ FROM base
 
 COPY --from=builder /app /app
 
-CMD [".venv/bin/python", "opcua_websocket_bridge.py"]
+CMD [".venv/bin/python", "-m", "opcua_webhmi_bridge"]
