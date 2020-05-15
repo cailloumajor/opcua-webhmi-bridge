@@ -1,48 +1,15 @@
 import asyncio
-import functools
 import logging
 import signal
 from argparse import RawDescriptionHelpFormatter
 from typing import Any, Dict, Optional
 
-import websockets
 from tap import Tap
-from websockets import WebSocketServerProtocol
 
 from opcua_webhmi_bridge.config import Config
 from opcua_webhmi_bridge.opcua import UAClient
 from opcua_webhmi_bridge.pubsub import Hub
-
-
-async def websockets_handler(  # noqa: U100
-    websocket: WebSocketServerProtocol, path: str, hub: Hub
-) -> None:
-    client_address = websocket.remote_address[0]
-    logging.info("WebSocket client connected from %s", client_address)
-    with hub.subscribe() as queue:
-        task_msg_wait = asyncio.create_task(queue.get())
-        task_client_disconnect = asyncio.create_task(websocket.wait_closed())
-        while True:
-            done, pending = await asyncio.wait(
-                [task_msg_wait, task_client_disconnect],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            must_shutdown = False
-            for task in done:
-                if task is task_msg_wait:
-                    msg = task.result()
-                    await websocket.send(str(msg))
-                    task_msg_wait = asyncio.create_task(queue.get())
-                elif task is task_client_disconnect:
-                    logging.info(
-                        "WebSocket client disconnected from %s", client_address
-                    )
-                    must_shutdown = True
-            if must_shutdown:
-                for task in pending:
-                    task.cancel()
-                    await task
-                break
+from opcua_webhmi_bridge.websocket import WebsocketServer
 
 
 async def shutdown(
@@ -105,13 +72,12 @@ def main() -> None:
 
     config = Config()
     hub = Hub()
+    ws_server = WebsocketServer(config, hub)
     opc_client = UAClient(config, hub)
-    bound_ws_handler = functools.partial(websockets_handler, hub=hub)
-    start_ws_server = websockets.serve(
-        bound_ws_handler, config.websocket_host, config.websocket_port
-    )
+
     loop = asyncio.get_event_loop()
     loop.set_debug(args.verbose)
+
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
     for s in signals:
         loop.add_signal_handler(
@@ -120,7 +86,7 @@ def main() -> None:
     loop.set_exception_handler(handle_exception)
 
     try:
-        loop.run_until_complete(start_ws_server)
+        loop.run_until_complete(ws_server.start_server)
         loop.create_task(opc_client.task())
         loop.run_forever()
     finally:
