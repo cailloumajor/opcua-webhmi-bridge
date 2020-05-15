@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import asyncua
+import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
@@ -37,33 +38,26 @@ class UAClient:
             )
         )
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(5),  # type: ignore
+        retry=(
+            tenacity.retry_if_exception_type(OSError)  # type: ignore
+            | tenacity.retry_if_exception_type(asyncio.TimeoutError)  # type: ignore
+        ),
+        before_sleep=tenacity.before_sleep_log(logging, logging.INFO),  # type: ignore
+    )
     async def task(self) -> None:
-        retrying = False
-        while True:
-            if retrying:
-                logging.info(
-                    "OPC-UA connection retry in %d seconds...",
-                    self._config.opc_retry_delay,
-                )
-                await asyncio.sleep(self._config.opc_retry_delay)
-            retrying = False
-            client = asyncua.Client(url=self._config.opc_server_url)
-            try:
-                async with client:
-                    ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
-                    sim_types_var = await client.nodes.opc_binary.get_child(
-                        f"{ns}:SimaticStructures"
-                    )
-                    await client.load_type_definitions([sim_types_var])
-                    var = client.get_node(f"ns={ns};s={self._config.opc_monitor_node}")
-                    subscription = await client.create_subscription(1000, self)
-                    await subscription.subscribe_data_change(var)
-                    server_state = client.get_node(
-                        ua.ObjectIds.Server_ServerStatus_State
-                    )
-                    while True:
-                        await asyncio.sleep(1)
-                        await server_state.get_data_value()
-            except (OSError, asyncio.TimeoutError) as exc:
-                logging.error("OPC-UA client error: %s %s", exc.__class__.__name__, exc)
-                retrying = True
+        client = asyncua.Client(url=self._config.opc_server_url)
+        async with client:
+            ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
+            sim_types_var = await client.nodes.opc_binary.get_child(
+                f"{ns}:SimaticStructures"
+            )
+            await client.load_type_definitions([sim_types_var])
+            var = client.get_node(f"ns={ns};s={self._config.opc_monitor_node}")
+            subscription = await client.create_subscription(1000, self)
+            await subscription.subscribe_data_change(var)
+            server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
+            while True:
+                await asyncio.sleep(1)
+                await server_state.get_data_value()
