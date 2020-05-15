@@ -6,10 +6,10 @@ from typing import Any, Dict, Optional
 
 from tap import Tap
 
-from opcua_webhmi_bridge.config import Config
-from opcua_webhmi_bridge.opcua import UAClient
-from opcua_webhmi_bridge.pubsub import Hub
-from opcua_webhmi_bridge.websocket import WebsocketServer
+from .config import Config
+from .opcua import UAClient
+from .pubsub import Hub
+from .websocket import WebsocketServer
 
 
 async def shutdown(
