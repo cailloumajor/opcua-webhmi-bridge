@@ -1,13 +1,22 @@
-from __future__ import annotations
-
 import asyncio
 from contextlib import contextmanager
-from typing import Iterator, Optional, Set, TypeVar
+from typing import TYPE_CHECKING, Iterator, Optional, Set, TypeVar
 
 _T = TypeVar("_T")
 
+if TYPE_CHECKING:
+    BaseQueue = asyncio.Queue
+else:
 
-class SingleElemOverwriteQueue(asyncio.Queue[_T]):
+    class FakeGenericMeta(type):
+        def __getitem__(cls, item):  # noqa: U100
+            return cls
+
+    class BaseQueue(asyncio.Queue, metaclass=FakeGenericMeta):
+        pass
+
+
+class SingleElemOverwriteQueue(BaseQueue[_T]):
     """A subclass of asyncio.Queue.
     It stores only one element and overwrites it when putting.
     """
