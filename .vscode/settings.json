@@ -1,8 +1,20 @@
 {
+    "[python]": {
+        "editor.detectIndentation": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
     "python.formatting.provider": "black",
     "python.linting.enabled": true,
     "python.linting.banditEnabled": true,
     "python.linting.flake8Enabled": true,
     "python.linting.pylintEnabled": false,
-    "python.pythonPath": ".venv/bin/python"
+    "python.pythonPath": ".venv/bin/python",
+    "python.sortImports.args": [
+        "--settings-path=${workspaceFolder}",
+        "--virtual-env=${workspaceFolder}/.venv"
+    ],
+    "python.sortImports.path": "${workspaceFolder}/.venv/bin/isort"
 }
