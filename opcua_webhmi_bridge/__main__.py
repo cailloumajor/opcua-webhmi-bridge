@@ -1,12 +1,13 @@
 import asyncio
 import logging
 import signal
+import sys
 from argparse import RawDescriptionHelpFormatter
 from typing import Any, Dict, Optional
 
 from tap import Tap
 
-from .config import Config
+from .config import Config, EnvError
 from .opcua import UAClient
 from .pubsub import Hub
 from .websocket import WebsocketServer
@@ -70,7 +71,13 @@ def main() -> None:
         ]:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
-    config = Config()
+    try:
+        config = Config()
+    except EnvError as err:
+        logging.critical("Configuration error (%s)", err)
+        logging.info("See `--help` option for more informations")
+        sys.exit(2)
+
     hub = Hub()
     ws_server = WebsocketServer(config, hub)
     opc_client = UAClient(config, hub)
