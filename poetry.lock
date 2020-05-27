@@ -28,7 +28,7 @@ description = "Pure Python OPC-UA client and server library"
 name = "asyncua"
 optional = false
 python-versions = "*"
-version = "0.8.2"
+version = "0.8.3"
 
 [package.dependencies]
 aiofiles = "*"
@@ -37,11 +37,6 @@ cryptography = "*"
 lxml = "*"
 python-dateutil = "*"
 pytz = "*"
-
-[package.source]
-reference = "5132c4edee2ae8348e5d960a2f890341b899d916"
-type = "git"
-url = "https://github.com/FreeOpcUa/opcua-asyncio.git"
 
 [[package]]
 category = "dev"
@@ -473,7 +468,7 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "1c17d7ca24046d590786a0818a3c4a6bf31aac26105f4b21f02d8ff9da678533"
+content-hash = "f5960b21abe691d6aa03ecc45edb35fcecda2fa8bf3574fcdb75d8cbcf08ecb6"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -488,7 +483,9 @@ appdirs = [
     {file = "appdirs-1.4.3-py2.py3-none-any.whl", hash = "sha256:d8b24664561d0d34ddfaec54636d502d7cea6e29c3eaf68f3df6180863e2166e"},
     {file = "appdirs-1.4.3.tar.gz", hash = "sha256:9e5896d1372858f8dd3344faf4e5014d21849c756c8d5701f78f8a103b372d92"},
 ]
-asyncua = []
+asyncua = [
+    {file = "asyncua-0.8.3.tar.gz", hash = "sha256:a16b4ad59ac935da53a50aa974150f31415eb3ed2b0448ea1e6702a4c726f6f8"},
+]
 attrs = [
     {file = "attrs-19.3.0-py2.py3-none-any.whl", hash = "sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c"},
     {file = "attrs-19.3.0.tar.gz", hash = "sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72"},

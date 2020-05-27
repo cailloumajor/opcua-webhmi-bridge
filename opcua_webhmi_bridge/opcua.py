@@ -60,4 +60,4 @@ class UAClient:
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
             while True:
                 await asyncio.sleep(1)
-                await server_state.get_data_value()
+                await server_state.read_data_value()
