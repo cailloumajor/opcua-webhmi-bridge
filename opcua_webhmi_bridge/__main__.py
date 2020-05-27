@@ -94,7 +94,7 @@ def main() -> None:
 
     try:
         loop.run_until_complete(ws_server.start_server)
-        loop.create_task(opc_client.task())
+        loop.create_task(opc_client.retrying_task())
         loop.run_forever()
     finally:
         loop.close()
