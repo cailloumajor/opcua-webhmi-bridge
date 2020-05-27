@@ -51,8 +51,12 @@ class Hub:
         queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
         self._subscriptions.add(queue)
         if self._last_message:
-            queue.put_nowait(self._last_message)
+            asyncio.create_task(self.put_last_message(queue))
         try:
             yield queue
         finally:
             self._subscriptions.remove(queue)
+
+    async def put_last_message(self, queue: SingleElemOverwriteQueue[str]) -> None:
+        await asyncio.sleep(1)
+        await queue.put(self._last_message)
