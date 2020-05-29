@@ -7,10 +7,9 @@ from typing import Any, Dict, Optional
 
 from tap import Tap
 
-from .config import Config, EnvError
-from .opcua import UAClient
-from .pubsub import Hub
-from .websocket import WebsocketServer
+from .config import EnvError, config
+from .opcua import client as opc_client
+from .websocket import start_server as start_ws_server
 
 
 async def shutdown(
@@ -55,7 +54,7 @@ def main() -> None:
 
     parser = ArgumentParser(
         description="Bridge between OPC-UA server and web-based HMI",
-        epilog=f"Environment variables:\n{Config.generate_help()}",
+        epilog=f"Environment variables:\n{config.generate_help()}",
         formatter_class=RawDescriptionHelpFormatter,
     )
     args = parser.parse_args()
@@ -72,15 +71,11 @@ def main() -> None:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
     try:
-        config = Config()
+        config.init()
     except EnvError as err:
         logging.critical("Configuration error (%s)", err)
         logging.info("See `--help` option for more informations")
         sys.exit(2)
-
-    hub = Hub()
-    ws_server = WebsocketServer(config, hub)
-    opc_client = UAClient(config, hub)
 
     loop = asyncio.get_event_loop()
     loop.set_debug(args.verbose)
@@ -93,7 +88,7 @@ def main() -> None:
     loop.set_exception_handler(handle_exception)
 
     try:
-        loop.run_until_complete(ws_server.start_server)
+        loop.run_until_complete(start_ws_server)
         loop.create_task(opc_client.retrying_task())
         loop.run_forever()
     finally:

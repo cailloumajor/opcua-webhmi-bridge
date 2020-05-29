@@ -36,7 +36,7 @@ class SingleElemOverwriteQueue(BaseQueue[_T]):
         return item
 
 
-class Hub:
+class _Hub:
     def __init__(self) -> None:
         self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
         self._last_message = ""
@@ -61,3 +61,6 @@ class Hub:
     async def put_last_message(self, queue: SingleElemOverwriteQueue[str]) -> None:
         await asyncio.sleep(1)
         await queue.put(self._last_message)
+
+
+hub = _Hub()

@@ -17,8 +17,8 @@ def config_field(help: str, default: Optional[_T] = None) -> Union[_T, Any]:
         return dataclasses.field(default=default, metadata=metadata)
 
 
-@dataclasses.dataclass
-class Config:
+@dataclasses.dataclass(init=False)
+class _Config:
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
     opc_monitor_node: str = config_field(help="String ID of node to monitor")
     opc_retry_delay: int = config_field(
@@ -29,7 +29,7 @@ class Config:
     )
     websocket_port: int = config_field(help="WebSocket server port", default=3000)
 
-    def __init__(self) -> None:
+    def init(self) -> None:
         for field in dataclasses.fields(self):
             env_var = field.name.upper()
             if env_var not in os.environ:
@@ -41,7 +41,8 @@ class Config:
                     setattr(self, field.name, field.type(os.environ[env_var]))
                 except ValueError:
                     raise EnvError(
-                        f"Conversion of {env_var} environment variable to {field.type.__name__} failed"
+                        f"Conversion of {env_var} environment variable "
+                        f"to {field.type.__name__} failed"
                     )
 
     @classmethod
@@ -57,3 +58,6 @@ class Config:
                 help_line += f" (default: {field.default})"
             help_lines.append(help_line)
         return "\n".join(help_lines)
+
+
+config = _Config()

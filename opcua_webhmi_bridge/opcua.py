@@ -8,8 +8,8 @@ import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
-from .config import Config
-from .pubsub import Hub
+from .config import config
+from .pubsub import hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
@@ -21,14 +21,12 @@ class OPCUAEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-class UAClient:
-    def __init__(self, config: Config, hub: Hub) -> None:
-        self._config = config
-        self._hub = hub
+class _Client:
+    def __init__(self) -> None:
         self._status = False
 
     async def _task(self) -> None:
-        client = asyncua.Client(url=self._config.opc_server_url)
+        client = asyncua.Client(url=config.opc_server_url)
         async with client:
             ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
 
@@ -37,7 +35,7 @@ class UAClient:
             )
             await client.load_type_definitions([sim_types_var])
 
-            var = client.get_node(f"ns={ns};s={self._config.opc_monitor_node}")
+            var = client.get_node(f"ns={ns};s={config.opc_monitor_node}")
             subscription = await client.create_subscription(1000, self)
             await subscription.subscribe_data_change(var)
 
@@ -53,7 +51,7 @@ class UAClient:
         node_id = node.nodeid.Identifier.replace('"', "")
         logging.debug("datachange_notification for %s %s", node, val)
         self._status = True
-        self._hub.publish(
+        hub.publish(
             json.dumps(
                 {"type": "opc_data_change", "node": node_id, "data": val},
                 cls=OPCUAEncoder,
@@ -63,7 +61,7 @@ class UAClient:
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         if self._status:
-            self._hub.publish(json.dumps({"type": "opc_status", "data": False}))
+            hub.publish(json.dumps({"type": "opc_status", "data": False}))
         self._status = False
         exc = retry_state.outcome.exception()  # type: ignore
         logging.info(
@@ -75,7 +73,7 @@ class UAClient:
 
     async def retrying_task(self) -> None:
         retryer = tenacity.AsyncRetrying(  # type: ignore
-            wait=tenacity.wait_fixed(5),
+            wait=tenacity.wait_fixed(config.opc_retry_delay),
             retry=(
                 tenacity.retry_if_exception_type(OSError)
                 | tenacity.retry_if_exception_type(asyncio.TimeoutError)
@@ -83,3 +81,6 @@ class UAClient:
             before_sleep=self.before_sleep,
         )
         await retryer.call(self._task)
+
+
+client = _Client()
