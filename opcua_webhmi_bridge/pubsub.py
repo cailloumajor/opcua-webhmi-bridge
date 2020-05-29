@@ -41,8 +41,9 @@ class Hub:
         self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
         self._last_message = ""
 
-    def publish(self, message: str) -> None:
-        self._last_message = message
+    def publish(self, message: str, retain: bool = False) -> None:
+        if retain:
+            self._last_message = message
         for queue in self._subscriptions:
             queue.put_nowait(message)
 

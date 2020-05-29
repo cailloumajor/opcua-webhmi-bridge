@@ -57,7 +57,8 @@ class UAClient:
             json.dumps(
                 {"type": "opc_data_change", "node": node_id, "data": val},
                 cls=OPCUAEncoder,
-            )
+            ),
+            retain=True,
         )
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
