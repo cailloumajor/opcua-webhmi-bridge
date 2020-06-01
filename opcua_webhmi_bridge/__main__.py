@@ -71,7 +71,7 @@ def main() -> None:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
     try:
-        config.init()
+        config.init(args.verbose)
     except EnvError as err:
         logging.critical("Configuration error (%s)", err)
         logging.info("See `--help` option for more informations")

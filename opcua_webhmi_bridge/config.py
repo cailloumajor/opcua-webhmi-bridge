@@ -2,6 +2,8 @@ import dataclasses
 import os
 from typing import Any, Optional, TypeVar, Union
 
+from dotenv import load_dotenv
+
 _T = TypeVar("_T")
 
 
@@ -29,7 +31,8 @@ class _Config:
     )
     websocket_port: int = config_field(help="WebSocket server port", default=3000)
 
-    def init(self) -> None:
+    def init(self, verbose: bool) -> None:
+        load_dotenv(verbose=verbose)
         for field in dataclasses.fields(self):
             env_var = field.name.upper()
             if env_var not in os.environ:

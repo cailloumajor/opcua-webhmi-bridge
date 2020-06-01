@@ -11,6 +11,7 @@ asyncua = "^0.8.3"
 websockets = "^8.1"
 typed-argument-parser = "^1.4.3"
 tenacity = "^6.2.0"
+python-dotenv = "^0.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"

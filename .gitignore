@@ -122,3 +122,6 @@ dmypy.json
 
 # Local virtual environment directory
 .venv
+
+# Environment variables definition files for development
+.env
