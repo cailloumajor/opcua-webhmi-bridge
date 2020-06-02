@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from tap import Tap
 
 from .config import EnvError, config
+from .influxdb import task as influx_writer_task
 from .opcua import client as opc_client
 from .websocket import start_server as start_ws_server
 
@@ -90,6 +91,7 @@ def main() -> None:
     try:
         loop.run_until_complete(start_ws_server)
         loop.create_task(opc_client.retrying_task())
+        loop.create_task(influx_writer_task())
         loop.run_forever()
     finally:
         loop.close()

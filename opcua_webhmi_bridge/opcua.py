@@ -9,6 +9,7 @@ from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
 from .config import config
+from .influxdb import Production, measurement_queue
 from .pubsub import hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
@@ -39,11 +40,53 @@ class _Client:
             subscription = await client.create_subscription(1000, self)
             await subscription.subscribe_data_change(var)
 
+            recorded_node = client.get_node(f"ns={ns};s={config.opc_record_node}")
+
+            async def wait_and_record() -> None:
+                wait_time = config.opc_record_interval
+                logging.debug(
+                    "Waiting %ss before getting %s and sending to InfluxDB",
+                    wait_time,
+                    recorded_node,
+                )
+                await asyncio.sleep(wait_time)
+                measurement = Production(total_line=await recorded_node.read_value())
+                await measurement_queue.put(measurement)
+
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
 
+            async def check_server_state() -> None:
+                while True:
+                    await asyncio.sleep(1)
+                    await server_state.read_data_value()
+
+            task_record = asyncio.create_task(wait_and_record())
+            task_check_server = asyncio.create_task(check_server_state())
             while True:
-                await asyncio.sleep(1)
-                await server_state.read_data_value()
+                done, pending = await asyncio.wait(
+                    [task_record, task_check_server],
+                    timeout=config.opc_record_interval * 3,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                must_stop = False
+                if not done:
+                    logging.warning(
+                        "OPC-UA node value recording task is locked. "
+                        "Is InfluxDB writing task consuming?"
+                    )
+                for done_task in done:
+                    if done_task is task_record and done_task.exception() is None:
+                        task_record = asyncio.create_task(wait_and_record())
+                    else:
+                        must_stop = True
+                if must_stop:
+                    for pending_task in pending:
+                        pending_task.cancel()
+                        try:
+                            await pending_task
+                        except asyncio.CancelledError:
+                            pass
+                    raise done_task.exception()
 
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData

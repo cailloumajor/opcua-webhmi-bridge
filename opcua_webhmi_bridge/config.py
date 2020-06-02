@@ -21,10 +21,21 @@ def config_field(help: str, default: Optional[_T] = None) -> Union[_T, Any]:
 
 @dataclasses.dataclass(init=False)
 class _Config:
+    # Mandatory fields
+    influx_db_name: str = config_field(help="Name of the InfluxDB database to use")
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
     opc_monitor_node: str = config_field(help="String ID of node to monitor")
+    opc_record_node: str = config_field(help="String ID of node to record periodically")
+    # Optional fields
+    influx_host: str = config_field(
+        help="Hostname to connect to InfluxDB", default="localhost"
+    )
+    influx_port: int = config_field(help="Port to connect to InfluxDB", default=8086)
     opc_retry_delay: int = config_field(
         help="Delay in seconds to retry OPC-UA connection", default=5
+    )
+    opc_record_interval: int = config_field(
+        help="Interval in seconds between two records", default=60
     )
     websocket_host: str = config_field(
         help="WebSocket server bind address", default="0.0.0.0"
