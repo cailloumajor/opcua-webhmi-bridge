@@ -20,21 +20,24 @@ async def _handler(  # noqa: U100
                 [task_msg_wait, task_client_disconnect],
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            must_shutdown = False
-            for task in done:
-                if task is task_msg_wait:
-                    msg = task.result()
+            must_stop = False
+            for done_task in done:
+                if done_task is task_msg_wait:
+                    msg = done_task.result()
                     await websocket.send(str(msg))
                     task_msg_wait = asyncio.create_task(queue.get())
-                elif task is task_client_disconnect:
+                elif done_task is task_client_disconnect:
                     logging.info(
                         "WebSocket client disconnected from %s", client_address
                     )
-                    must_shutdown = True
-            if must_shutdown:
-                for task in pending:
-                    task.cancel()
-                    await task
+                    must_stop = True
+            if must_stop:
+                for pending_task in pending:
+                    pending_task.cancel()
+                    try:
+                        await pending_task
+                    except asyncio.CancelledError:
+                        pass
                 break
 
 
