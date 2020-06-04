@@ -2,3 +2,4 @@
 !pyproject.toml
 !poetry.lock
 !opcua_webhmi_bridge
+**/__pycache__/
