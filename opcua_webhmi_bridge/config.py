@@ -1,5 +1,6 @@
 import dataclasses
 import os
+from pathlib import Path
 from typing import Any, Optional, TypeVar, Union
 
 from dotenv import load_dotenv
@@ -43,7 +44,9 @@ class _Config:
     websocket_port: int = config_field(help="WebSocket server port", default=3000)
 
     def init(self, verbose: bool) -> None:
-        load_dotenv(verbose=verbose)
+        env_path = Path(__file__).parent / "../.env"
+        env_path = env_path.resolve()
+        load_dotenv(dotenv_path=env_path, verbose=verbose)
         for field in dataclasses.fields(self):
             env_var = field.name.upper()
             if env_var not in os.environ:
