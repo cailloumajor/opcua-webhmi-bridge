@@ -32,4 +32,6 @@ WORKDIR /app
 
 COPY --from=builder --chown=pythonapp:pythonapp /app /app
 
+EXPOSE 3000
+
 CMD [".venv/bin/python", "-m", "opcua_webhmi_bridge"]
