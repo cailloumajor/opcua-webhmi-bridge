@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Tuple
 
 import websockets
 
@@ -7,11 +8,24 @@ from .config import config
 from .pubsub import hub
 
 
+def get_client_address(
+    websocket: websockets.WebSocketServerProtocol,
+) -> Tuple[str, str]:
+    for header in ("X-Real-Ip", "X-Forwarded-For"):
+        try:
+            return (websocket.request_headers[header], header)
+        except KeyError:
+            pass
+    return (websocket.remote_address[0], "socket peer name")
+
+
 async def _handler(  # noqa: U100
     websocket: websockets.WebSocketServerProtocol, path: str
 ) -> None:
-    client_address = websocket.remote_address[0]
-    logging.info("WebSocket client connected from %s", client_address)
+    client_address, address_from = get_client_address(websocket)
+    logging.info(
+        "WebSocket client connected from %s (%s)", client_address, address_from
+    )
     with hub.subscribe() as queue:
         task_msg_wait = asyncio.create_task(queue.get())
         task_client_disconnect = asyncio.create_task(websocket.wait_closed())
@@ -28,7 +42,9 @@ async def _handler(  # noqa: U100
                     task_msg_wait = asyncio.create_task(queue.get())
                 elif done_task is task_client_disconnect:
                     logging.info(
-                        "WebSocket client disconnected from %s", client_address
+                        "WebSocket client disconnected from %s (%s)",
+                        client_address,
+                        address_from,
                     )
                     must_stop = True
             if must_stop:
