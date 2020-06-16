@@ -48,6 +48,7 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
 
 def main() -> None:
     class ArgumentParser(Tap):
+        config: bool = False  # Print configuration object and exit
         verbose: bool = False  # Be more verbose (print debug informations)
 
         def add_arguments(self) -> None:
@@ -77,6 +78,10 @@ def main() -> None:
         logging.critical("Configuration error (%s)", err)
         logging.info("See `--help` option for more informations")
         sys.exit(2)
+
+    if args.config:
+        print(config)
+        sys.exit()
 
     loop = asyncio.get_event_loop()
     loop.set_debug(args.verbose)

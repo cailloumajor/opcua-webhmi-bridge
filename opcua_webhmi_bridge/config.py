@@ -62,6 +62,11 @@ class _Config:
                         f"to {field.type.__name__} failed"
                     )
 
+    def __str__(self) -> str:
+        return "\n".join(
+            [f"{f.name}={getattr(self, f.name)}" for f in dataclasses.fields(self)]
+        )
+
     @classmethod
     def generate_help(cls) -> str:
         help_lines = []
