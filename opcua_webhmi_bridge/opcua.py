@@ -57,7 +57,7 @@ class _Client:
 
             async def check_server_state() -> None:
                 while True:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(5)
                     await server_state.read_data_value()
 
             task_record = asyncio.create_task(wait_and_record())
