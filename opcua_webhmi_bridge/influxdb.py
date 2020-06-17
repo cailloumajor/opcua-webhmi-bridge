@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import warnings
-from typing import NamedTuple
+from typing import Any, Dict
 
 import tenacity
 
@@ -13,12 +15,7 @@ with warnings.catch_warnings():
     import aioinflux
 
 
-@aioinflux.lineprotocol
-class Production(NamedTuple):
-    total_line: aioinflux.INT
-
-
-measurement_queue = asyncio.Queue(maxsize=1)  # type: asyncio.Queue[Production]
+measurement_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue(maxsize=1)
 
 
 async def task() -> None:
@@ -27,7 +24,10 @@ async def task() -> None:
         host=config.influx_host, port=config.influx_port, db=config.influx_db_name,
     ) as client:
         while True:
-            point = await measurement_queue.get()
+            point = {
+                "measurement": config.influx_measurement,
+                "fields": await measurement_queue.get(),
+            }
             retryer = tenacity.AsyncRetrying(  # type: ignore
                 wait=tenacity.wait_fixed(5),
                 before=tenacity.before_log(logging, logging.DEBUG),

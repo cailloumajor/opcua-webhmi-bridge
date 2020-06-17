@@ -9,7 +9,7 @@ from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
 from .config import config
-from .influxdb import Production, measurement_queue
+from .influxdb import measurement_queue
 from .pubsub import hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
@@ -40,17 +40,22 @@ class _Client:
             subscription = await client.create_subscription(1000, self)
             await subscription.subscribe_data_change(var)
 
-            recorded_node = client.get_node(f"ns={ns};s={config.opc_record_node}")
+            recorded_nodes = {
+                k: client.get_node(f"ns={ns};s={v}")
+                for k, v in config.opc_record_nodes.items()
+            }
 
             async def wait_and_record() -> None:
                 wait_time = config.opc_record_interval
                 logging.debug(
                     "Waiting %ss before getting %s and sending to InfluxDB",
                     wait_time,
-                    recorded_node,
+                    recorded_nodes,
                 )
                 await asyncio.sleep(wait_time)
-                measurement = Production(total_line=await recorded_node.read_value())
+                keys = recorded_nodes.keys()
+                values = await client.read_values(recorded_nodes.values())
+                measurement = dict(zip(keys, values))
                 await measurement_queue.put(measurement)
 
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)

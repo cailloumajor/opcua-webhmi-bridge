@@ -1,7 +1,7 @@
 import dataclasses
 import os
 from pathlib import Path
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypedDict, TypeVar, Union
 
 from dotenv import load_dotenv
 
@@ -12,8 +12,27 @@ class EnvError(ValueError):
     """Raised when an environment variable or if a required environment variable is unset."""
 
 
-def config_field(help: str, default: Optional[_T] = None) -> Union[_T, Any]:
-    metadata = {"help": help}
+class FieldMetadata(TypedDict, total=False):
+    help: str
+    factory: Callable[[str], _T]
+
+
+def dict_factory(raw_value: str) -> Dict[str, str]:
+    result = {}
+    for key_value in raw_value.split(","):
+        key, value = key_value.split(":")
+        result[key] = value
+    return result
+
+
+def config_field(
+    help: str,
+    default: Optional[_T] = None,
+    factory: Optional[Callable[[str], _T]] = None,
+) -> Union[_T, Any]:
+    metadata: FieldMetadata = {"help": help}
+    if factory is not None:
+        metadata["factory"] = factory
     if default is None:
         return dataclasses.field(metadata=metadata)
     else:
@@ -24,9 +43,13 @@ def config_field(help: str, default: Optional[_T] = None) -> Union[_T, Any]:
 class _Config:
     # Mandatory fields
     influx_db_name: str = config_field(help="Name of the InfluxDB database to use")
+    influx_measurement: str = config_field(help="Name for InfluxDB measurement")
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
     opc_monitor_node: str = config_field(help="String ID of node to monitor")
-    opc_record_node: str = config_field(help="String ID of node to record periodically")
+    opc_record_nodes: Dict[str, str] = config_field(
+        help="Nodes to record, pairs of `key:value` separated by commas",
+        factory=dict_factory,
+    )
     # Optional fields
     influx_host: str = config_field(
         help="Hostname to connect to InfluxDB", default="localhost"
@@ -54,13 +77,14 @@ class _Config:
                     raise EnvError(f"Missing required environment variable {env_var}")
                 setattr(self, field.name, field.default)
             else:
+                env_value = os.environ[env_var]
                 try:
-                    setattr(self, field.name, field.type(os.environ[env_var]))
-                except ValueError:
-                    raise EnvError(
-                        f"Conversion of {env_var} environment variable "
-                        f"to {field.type.__name__} failed"
-                    )
+                    if field.metadata.get("factory") is not None:
+                        setattr(self, field.name, field.metadata["factory"](env_value))
+                    else:
+                        setattr(self, field.name, field.type(env_value))
+                except ValueError as err:
+                    raise EnvError(f"Error in {env_var} environment variable: {err}")
 
     def __str__(self) -> str:
         return "\n".join(
