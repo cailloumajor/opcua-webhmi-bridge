@@ -38,7 +38,7 @@ async def _handler(  # noqa: U100
             for done_task in done:
                 if done_task is task_msg_wait:
                     msg = done_task.result()
-                    await websocket.send(str(msg))
+                    await websocket.send(msg)
                     task_msg_wait = asyncio.create_task(queue.get())
                 elif done_task is task_client_disconnect:
                     logging.info(
