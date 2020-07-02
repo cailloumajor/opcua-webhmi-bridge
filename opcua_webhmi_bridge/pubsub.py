@@ -38,25 +38,25 @@ class SingleElemOverwriteQueue(BaseQueue[_T]):
 
 class _Hub:
     def __init__(self) -> None:
-        self._subscriptions: Set[SingleElemOverwriteQueue[str]] = set()
+        self._subscribers: Set[SingleElemOverwriteQueue[str]] = set()
         self._last_message = ""
 
     def publish(self, message: str, retain: bool = False) -> None:
         if retain:
             self._last_message = message
-        for queue in self._subscriptions:
+        for queue in self._subscribers:
             queue.put_nowait(message)
 
     @contextmanager
     def subscribe(self) -> Iterator[SingleElemOverwriteQueue[str]]:
         queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
-        self._subscriptions.add(queue)
+        self._subscribers.add(queue)
         if self._last_message:
             asyncio.create_task(self.put_last_message(queue))
         try:
             yield queue
         finally:
-            self._subscriptions.remove(queue)
+            self._subscribers.remove(queue)
 
     async def put_last_message(self, queue: SingleElemOverwriteQueue[str]) -> None:
         await asyncio.sleep(1)
