@@ -1,66 +1,69 @@
 import asyncio
+import dataclasses
+import json
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Iterator, Optional, Set, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Set, Union
 
-_T = TypeVar("_T")
+from asyncua.ua.uatypes import ExtensionObject
+
+
+class OPCUAEncoder(json.JSONEncoder):
+    def default(self, o: Any) -> Any:
+        if hasattr(o, "ua_types"):
+            return {elem: getattr(o, elem) for elem, _ in o.ua_types}
+        return super().default(o)
+
+
+@dataclasses.dataclass
+class BaseMessage:
+    message_type: str = dataclasses.field(init=False)
+
+    def __str__(self) -> str:
+        return json.dumps(dataclasses.asdict(self), cls=OPCUAEncoder)
+
+
+@dataclasses.dataclass
+class OPCDataChangeMessage(BaseMessage):
+    message_type = "opc_data_change"
+    node_id: str
+    data: ExtensionObject
+
+
+@dataclasses.dataclass
+class OPCStatusMessage(BaseMessage):
+    message_type = "opc_status"
+    data: bool
+
+
+OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
 if TYPE_CHECKING:
-    BaseQueue = asyncio.Queue
+    OPCMessageQueue = asyncio.Queue[OPCMessage]
 else:
-
-    class FakeGenericMeta(type):
-        def __getitem__(cls, item):  # noqa: U100
-            return cls
-
-    class BaseQueue(asyncio.Queue, metaclass=FakeGenericMeta):
-        pass
-
-
-class SingleElemOverwriteQueue(BaseQueue[_T]):
-    """A subclass of asyncio.Queue.
-    It stores only one element and overwrites it when putting.
-    """
-
-    def _init(self, maxsize: int) -> None:  # noqa: U100
-        self._queue: Optional[_T] = None
-
-    def _put(self, item: _T) -> None:
-        self._queue = item
-
-    def _get(self) -> _T:
-        # The assert line is here to satisfy mypy type check.
-        # Ensuring that self._queue is not None is already done in the parent class.
-        assert self._queue is not None  # nosec
-        item = self._queue
-        self._queue = None
-        return item
+    OPCMessageQueue = asyncio.Queue
 
 
 class _Hub:
     def __init__(self) -> None:
-        self._subscribers: Set[SingleElemOverwriteQueue[str]] = set()
-        self._last_message = ""
+        self._subscribers: Set[OPCMessageQueue] = set()
+        self._last_datachange_message: Dict[str, OPCDataChangeMessage] = {}
 
-    def publish(self, message: str, retain: bool = False) -> None:
-        if retain:
-            self._last_message = message
+    def publish(self, message: OPCMessage) -> None:
+        if isinstance(message, OPCDataChangeMessage):
+            self._last_datachange_message[message.node_id] = message
         for queue in self._subscribers:
             queue.put_nowait(message)
 
     @contextmanager
-    def subscribe(self) -> Iterator[SingleElemOverwriteQueue[str]]:
-        queue: SingleElemOverwriteQueue[str] = SingleElemOverwriteQueue()
+    def subscribe(self) -> Iterator[OPCMessageQueue]:
+        queue = OPCMessageQueue()
+        for message in self._last_datachange_message.values():
+            queue.put_nowait(message)
         self._subscribers.add(queue)
-        if self._last_message:
-            asyncio.create_task(self.put_last_message(queue))
         try:
             yield queue
         finally:
             self._subscribers.remove(queue)
-
-    async def put_last_message(self, queue: SingleElemOverwriteQueue[str]) -> None:
-        await asyncio.sleep(1)
-        await queue.put(self._last_message)
 
 
 hub = _Hub()

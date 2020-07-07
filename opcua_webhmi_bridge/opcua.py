@@ -1,7 +1,5 @@
 import asyncio
-import json
 import logging
-from typing import Any
 
 import asyncua
 import tenacity
@@ -10,16 +8,9 @@ from asyncua.common.subscription import SubscriptionItemData
 
 from .config import config
 from .influxdb import measurement_queue
-from .pubsub import hub
+from .pubsub import OPCDataChangeMessage, OPCStatusMessage, hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
-
-
-class OPCUAEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if hasattr(o, "ua_types"):
-            return {elem: getattr(o, elem) for elem, _ in o.ua_types}
-        return super().default(o)
 
 
 class _Client:
@@ -36,9 +27,12 @@ class _Client:
             )
             await client.load_type_definitions([sim_types_var])
 
-            var = client.get_node(f"ns={ns};s={config.opc_monitor_node}")
+            sub_vars = [
+                client.get_node(f"ns={ns};s={node_id}")
+                for node_id in config.opc_monitor_nodes
+            ]
             subscription = await client.create_subscription(1000, self)
-            await subscription.subscribe_data_change(var)
+            await subscription.subscribe_data_change(sub_vars)
 
             recorded_nodes = {
                 k: client.get_node(f"ns={ns};s={v}")
@@ -96,20 +90,14 @@ class _Client:
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
     ) -> None:
-        node_id = node.nodeid.Identifier.replace('"', "")
-        logging.debug("datachange_notification for %s %s", node, val)
+        node_id = node.nodeid.Identifier
+        logging.debug("datachange_notification for %s %s", node_id, val)
         self._status = True
-        hub.publish(
-            json.dumps(
-                {"type": "opc_data_change", "node": node_id, "data": val},
-                cls=OPCUAEncoder,
-            ),
-            retain=True,
-        )
+        hub.publish(OPCDataChangeMessage(node_id=node_id, data=val))
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         if self._status:
-            hub.publish(json.dumps({"type": "opc_status", "data": False}))
+            hub.publish(OPCStatusMessage(data=False))
         self._status = False
         exc = retry_state.outcome.exception()  # type: ignore
         logging.info(

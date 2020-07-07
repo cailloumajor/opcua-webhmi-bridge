@@ -1,7 +1,7 @@
 import dataclasses
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TypedDict, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypedDict, TypeVar, Union
 
 from dotenv import load_dotenv
 
@@ -45,7 +45,10 @@ class _Config:
     influx_db_name: str = config_field(help="Name of the InfluxDB database to use")
     influx_measurement: str = config_field(help="Name for InfluxDB measurement")
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
-    opc_monitor_node: str = config_field(help="String ID of node to monitor")
+    opc_monitor_nodes: List[str] = config_field(
+        help="List of node IDs to monitor, separated by commas",
+        factory=lambda s: s.split(","),
+    )
     opc_record_nodes: Dict[str, str] = config_field(
         help="Nodes to record, pairs of `key:value` separated by commas",
         factory=dict_factory,
