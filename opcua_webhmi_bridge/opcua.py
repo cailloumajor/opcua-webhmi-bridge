@@ -32,7 +32,11 @@ class _Client:
                 for node_id in config.opc_monitor_nodes
             ]
             subscription = await client.create_subscription(1000, self)
-            await subscription.subscribe_data_change(sub_vars)
+            sub_results = await subscription.subscribe_data_change(sub_vars)
+            for index, result in enumerate(sub_results):
+                if isinstance(result, ua.StatusCode):
+                    logging.error("Error subscribing to node %s", sub_vars[index])
+                    result.check()  # Raise the exception
 
             recorded_nodes = {
                 k: client.get_node(f"ns={ns};s={v}")
