@@ -22,10 +22,10 @@ class _Client:
         async with client:
             ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
 
-            sim_types_var = await client.nodes.opc_binary.get_child(
+            simatic_types_var = await client.nodes.opc_binary.get_child(
                 f"{ns}:SimaticStructures"
             )
-            await client.load_type_definitions([sim_types_var])
+            await client.load_type_definitions([simatic_types_var])
 
             sub_vars = [
                 client.get_node(f"ns={ns};s={node_id}")
