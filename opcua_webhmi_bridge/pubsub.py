@@ -51,6 +51,8 @@ class _Hub:
     def publish(self, message: OPCMessage) -> None:
         if isinstance(message, OPCDataChangeMessage):
             self._last_datachange_message[message.node_id] = message
+        if isinstance(message, OPCStatusMessage) and message.data is False:
+            self._last_datachange_message = {}
         for queue in self._subscribers:
             queue.put_nowait(message)
 
