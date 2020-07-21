@@ -2,18 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import warnings
 from typing import Any, Dict
 
+import aioinflux
 import tenacity
 
 from .config import config
-
-# Suppress aioinflux warnings about pandas and NumPy
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    import aioinflux
-
 
 measurement_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue(maxsize=1)
 
