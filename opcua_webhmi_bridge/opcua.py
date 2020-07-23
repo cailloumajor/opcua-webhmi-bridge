@@ -7,7 +7,7 @@ from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
 from .config import config
-from .influxdb import measurement_queue
+from .influxdb import queue as influxdb_queue
 from .pubsub import OPCDataChangeMessage, OPCStatusMessage, hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
@@ -27,69 +27,22 @@ class _Client:
             )
             await client.load_type_definitions([simatic_types_var])
 
-            sub_vars = [
-                client.get_node(f"ns={ns};s={node_id}")
-                for node_id in config.opc_monitor_nodes
+            sub_nodes = list(set(config.opc_monitor_nodes + config.opc_record_nodes))
+            sub_nodes = [
+                client.get_node(f"ns={ns};s={node_id}") for node_id in sub_nodes
             ]
             subscription = await client.create_subscription(1000, self)
-            sub_results = await subscription.subscribe_data_change(sub_vars)
+            sub_results = await subscription.subscribe_data_change(sub_nodes)
             for index, result in enumerate(sub_results):
                 if isinstance(result, ua.StatusCode):
-                    logging.error("Error subscribing to node %s", sub_vars[index])
+                    logging.error("Error subscribing to node %s", sub_nodes[index])
                     result.check()  # Raise the exception
-
-            recorded_nodes = {
-                k: client.get_node(f"ns={ns};s={v}")
-                for k, v in config.opc_record_nodes.items()
-            }
-
-            async def wait_and_record() -> None:
-                wait_time = config.opc_record_interval
-                logging.debug(
-                    "Waiting %ss before getting %s and sending to InfluxDB",
-                    wait_time,
-                    recorded_nodes,
-                )
-                await asyncio.sleep(wait_time)
-                keys = recorded_nodes.keys()
-                values = await client.read_values(recorded_nodes.values())
-                measurement = dict(zip(keys, values))
-                await measurement_queue.put(measurement)
 
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
 
-            async def check_server_state() -> None:
-                while True:
-                    await asyncio.sleep(5)
-                    await server_state.read_data_value()
-
-            task_record = asyncio.create_task(wait_and_record())
-            task_check_server = asyncio.create_task(check_server_state())
             while True:
-                done, pending = await asyncio.wait(
-                    [task_record, task_check_server],
-                    timeout=config.opc_record_interval * 3,
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                must_stop = False
-                if not done:
-                    logging.warning(
-                        "OPC-UA node value recording task is locked. "
-                        "Is InfluxDB writing task consuming?"
-                    )
-                for done_task in done:
-                    if done_task is task_record and done_task.exception() is None:
-                        task_record = asyncio.create_task(wait_and_record())
-                    else:
-                        must_stop = True
-                if must_stop:
-                    for pending_task in pending:
-                        pending_task.cancel()
-                        try:
-                            await pending_task
-                        except asyncio.CancelledError:
-                            pass
-                    raise done_task.exception()
+                await asyncio.sleep(5)
+                await server_state.read_data_value()
 
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
@@ -97,7 +50,10 @@ class _Client:
         node_id = node.nodeid.Identifier
         logging.debug("datachange_notification for %s %s", node_id, val)
         self._status = True
-        hub.publish(OPCDataChangeMessage(node_id=node_id, data=val))
+        message = OPCDataChangeMessage(node_id=node_id, data=val)
+        hub.publish(message)
+        if node_id in config.opc_record_nodes:
+            influxdb_queue.put_nowait(message)
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         if self._status:

@@ -1,7 +1,7 @@
 import dataclasses
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypedDict, TypeVar, Union
+from typing import Any, Callable, List, Optional, TypedDict, TypeVar, Union
 
 from dotenv import load_dotenv
 
@@ -15,14 +15,6 @@ class EnvError(ValueError):
 class FieldMetadata(TypedDict, total=False):
     help: str
     factory: Callable[[str], _T]
-
-
-def dict_factory(raw_value: str) -> Dict[str, str]:
-    result = {}
-    for key_value in raw_value.split(","):
-        key, value = key_value.split(":")
-        result[key] = value
-    return result
 
 
 def config_field(
@@ -46,12 +38,12 @@ class _Config:
     influx_measurement: str = config_field(help="Name for InfluxDB measurement")
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
     opc_monitor_nodes: List[str] = config_field(
-        help="List of node IDs to monitor, separated by commas",
+        help="List of node IDs to monitor without recording, separated by commas",
         factory=lambda s: s.split(","),
     )
-    opc_record_nodes: Dict[str, str] = config_field(
-        help="Nodes to record, pairs of `key:value` separated by commas",
-        factory=dict_factory,
+    opc_record_nodes: List[str] = config_field(
+        help="List of node IDs to monitor and record, separated by commas",
+        factory=lambda s: s.split(","),
     )
     # Optional fields
     influx_host: str = config_field(
@@ -60,9 +52,6 @@ class _Config:
     influx_port: int = config_field(help="Port to connect to InfluxDB", default=8086)
     opc_retry_delay: int = config_field(
         help="Delay in seconds to retry OPC-UA connection", default=5
-    )
-    opc_record_interval: int = config_field(
-        help="Interval in seconds between two records", default=60
     )
     websocket_host: str = config_field(
         help="WebSocket server bind address", default="0.0.0.0"

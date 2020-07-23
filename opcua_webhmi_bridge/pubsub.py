@@ -2,7 +2,7 @@ import asyncio
 import dataclasses
 import json
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Set, Union, cast
 
 from asyncua.ua.uatypes import ExtensionObject
 
@@ -20,6 +20,9 @@ class BaseMessage:
 
     def __str__(self) -> str:
         return json.dumps(dataclasses.asdict(self), cls=OPCUAEncoder)
+
+    def to_python(self) -> Dict[str, Any]:
+        return cast(Dict[str, Any], json.loads(str(self)))
 
 
 @dataclasses.dataclass
