@@ -35,7 +35,6 @@ def config_field(
 class _Config:
     # Mandatory fields
     influx_db_name: str = config_field(help="Name of the InfluxDB database to use")
-    influx_measurement: str = config_field(help="Name for InfluxDB measurement")
     opc_server_url: str = config_field(help="URL of the OPC-UA server")
     opc_monitor_nodes: List[str] = config_field(
         help="List of node IDs to monitor without recording, separated by commas",
