@@ -23,7 +23,9 @@ class InfluxPoint(TypedDict):
 def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
     """Flatten a JSON data structure"""
 
-    def unpack(parent_key: str, parent_value: Any) -> Iterator[Tuple[str, Any]]:
+    def unpack(
+        parent_key: str, parent_value: Union[Dict[str, Any], List[Dict[str, Any]], Any]
+    ) -> Iterator[Tuple[str, Any]]:
         """Unpack one level of nesting in JSON data structure"""
         if isinstance(parent_value, dict):
             for key, value in parent_value.items():
