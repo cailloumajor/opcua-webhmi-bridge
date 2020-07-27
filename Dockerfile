@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED 1
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG POETRY_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
-RUN curl -sSL $POETRY_URL | python - --version=1.0.5
+RUN curl -sSL $POETRY_URL | python - --version=1.0.10
 
 WORKDIR /app
 
