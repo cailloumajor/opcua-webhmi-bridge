@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import warnings
 from itertools import chain, starmap
 from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
-import aioinflux
 import tenacity
 
 from .config import config
 from .pubsub import OPCDataChangeMessage
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
+    import aioinflux
+
 
 queue: asyncio.Queue[OPCDataChangeMessage] = asyncio.Queue(maxsize=600)
 
