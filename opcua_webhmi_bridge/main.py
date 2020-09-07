@@ -16,8 +16,8 @@ app = typer.Typer(add_completion=False)
 
 
 class EnvVarsEpilogCommand(typer.core.TyperCommand):
-    def format_epilog(  # noqa: U101
-        self, _: click.Context, formatter: click.HelpFormatter
+    def format_epilog(  # noqa: U100
+        self, ctx: click.Context, formatter: click.HelpFormatter
     ) -> None:
         """Writes each line of the epilog, thus preserving newlines."""
         with formatter.section("Environment variables"):
