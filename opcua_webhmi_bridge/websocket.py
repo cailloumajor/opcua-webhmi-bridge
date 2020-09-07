@@ -1,11 +1,12 @@
 import asyncio
 import logging
-from typing import Tuple
+from asyncio import Task
+from typing import List, Tuple, Union
 
 import websockets
 
 from .config import WebSocketSettings
-from .pubsub import hub
+from .pubsub import OPCMessage, hub
 
 
 def get_client_address(
@@ -30,9 +31,12 @@ async def _handler(  # noqa: U100
         task_msg_wait = asyncio.create_task(queue.get())
         task_client_disconnect = asyncio.create_task(websocket.wait_closed())
         while True:
+            futures: List[Union[Task[OPCMessage], Task[None]]] = [
+                task_msg_wait,
+                task_client_disconnect,
+            ]
             done, pending = await asyncio.wait(
-                [task_msg_wait, task_client_disconnect],
-                return_when=asyncio.FIRST_COMPLETED,
+                futures, return_when=asyncio.FIRST_COMPLETED,
             )
             must_stop = False
             for done_task in done:
