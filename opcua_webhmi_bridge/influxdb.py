@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
 import tenacity
 
-from .config import config
+from .config import InfluxSettings
 from .pubsub import OPCDataChangeMessage
 
 with warnings.catch_warnings():
@@ -67,10 +67,10 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
         return {"measurement": measurement, "tags": {}, "fields": flatten(data)}
 
 
-async def task() -> None:
+async def task(config: InfluxSettings) -> None:
     logging.debug("InfluxDB writer task running")
     async with aioinflux.InfluxDBClient(
-        host=config.influx_host, port=config.influx_port, db=config.influx_db_name,
+        host=config.host, port=config.port, db=config.db_name,
     ) as client:
         while True:
             points = to_influx(await queue.get())

@@ -1,100 +1,96 @@
 import dataclasses
-import os
 from pathlib import Path
-from typing import Any, Callable, List, Optional, TypedDict, TypeVar, Union
+from typing import TYPE_CHECKING, List, Union, cast
 
-from dotenv import load_dotenv
+from pydantic import AnyUrl, BaseSettings, Field, PositiveInt, stricturl
+from pydantic.error_wrappers import ValidationError
 
-_T = TypeVar("_T")
-
-
-class EnvError(ValueError):
-    """Raised when an environment variable or if a required environment variable is unset."""
-
-
-class FieldMetadata(TypedDict, total=False):
-    help: str
-    factory: Callable[[str], _T]
+if TYPE_CHECKING:
+    OpcUrl = AnyUrl
+else:
+    OpcUrl = stricturl(allowed_schemes={"opc.tcp"})
 
 
-def config_field(
-    help: str,
-    default: Optional[_T] = None,
-    factory: Optional[Callable[[str], _T]] = None,
-) -> Union[_T, Any]:
-    metadata: FieldMetadata = {"help": help}
-    if factory is not None:
-        metadata["factory"] = factory
-    if default is None:
-        return dataclasses.field(metadata=metadata)
-    else:
-        return dataclasses.field(default=default, metadata=metadata)
+class ConfigError(ValueError):
+    pass
 
 
-@dataclasses.dataclass(init=False)
-class _Config:
-    # Mandatory fields
-    influx_db_name: str = config_field(help="Name of the InfluxDB database to use")
-    opc_server_url: str = config_field(help="URL of the OPC-UA server")
-    opc_monitor_nodes: List[str] = config_field(
-        help="List of node IDs to monitor without recording, separated by commas",
-        factory=lambda s: s.split(","),
+class InfluxSettings(BaseSettings):
+    db_name: str = Field(..., help="Name of the InfluxDB database to use")
+    host: str = Field("localhost", help="Hostname to connect to InfluxDB")
+    port: PositiveInt = Field(8086, help="Port to connect to InfluxDB")
+
+    class Config:
+        env_prefix = "influx_"
+
+
+class OPCSettings(BaseSettings):
+    server_url: OpcUrl = Field(..., help="URL of the OPC-UA server")
+    monitor_nodes: List[str] = Field(
+        ..., help="Array of node IDs to monitor without recording (JSON format)"
     )
-    opc_record_nodes: List[str] = config_field(
-        help="List of node IDs to monitor and record, separated by commas",
-        factory=lambda s: s.split(","),
+    record_nodes: List[str] = Field(
+        ..., help="Array of node IDs to monitor and record (JSON format)"
     )
-    # Optional fields
-    influx_host: str = config_field(
-        help="Hostname to connect to InfluxDB", default="localhost"
+    retry_delay: PositiveInt = Field(
+        5, help="Delay in seconds to retry OPC-UA connection"
     )
-    influx_port: int = config_field(help="Port to connect to InfluxDB", default=8086)
-    opc_retry_delay: int = config_field(
-        help="Delay in seconds to retry OPC-UA connection", default=5
-    )
-    websocket_host: str = config_field(
-        help="WebSocket server bind address", default="0.0.0.0"
-    )
-    websocket_port: int = config_field(help="WebSocket server port", default=3000)
 
-    def init(self, verbose: bool) -> None:
-        env_path = Path(__file__).parent / "../.env"
-        env_path = env_path.resolve()
-        load_dotenv(dotenv_path=env_path, verbose=verbose)
-        for field in dataclasses.fields(self):
-            env_var = field.name.upper()
-            if env_var not in os.environ:
-                if field.default is dataclasses.MISSING:
-                    raise EnvError(f"Missing required environment variable {env_var}")
-                setattr(self, field.name, field.default)
-            else:
-                env_value = os.environ[env_var]
-                try:
-                    if field.metadata.get("factory") is not None:
-                        setattr(self, field.name, field.metadata["factory"](env_value))
-                    else:
-                        setattr(self, field.name, field.type(env_value))
-                except ValueError as err:
-                    raise EnvError(f"Error in {env_var} environment variable: {err}")
+    class Config:
+        env_prefix = "opc_"
 
-    def __str__(self) -> str:
-        return "\n".join(
-            [f"{f.name}={getattr(self, f.name)}" for f in dataclasses.fields(self)]
-        )
+
+class WebSocketSettings(BaseSettings):
+    host: str = Field("0.0.0.0", help="WebSocket server bind address")
+    port: PositiveInt = Field(3000, help="WebSocket server port")
+
+    class Config:
+        env_prefix = "websocket_"
+
+
+@dataclasses.dataclass
+class Settings:
+    influx: InfluxSettings
+    opc: OPCSettings
+    websocket: WebSocketSettings
+
+    def __init__(self) -> None:
+        env_file = Path(__file__).parent / "../.env"
+        try:
+            for field in dataclasses.fields(self):
+                setattr(self, field.name, field.type(env_file))
+        except ValidationError as err:
+            first_error = err.errors()[0]
+            settings_model = cast(BaseSettings, err.model)
+            env_var = settings_model.Config.env_prefix
+            env_var += first_error["loc"][0]
+            env_var = env_var.upper()
+            raise ConfigError(f"{env_var} environment variable: {first_error['msg']}")
 
     @classmethod
-    def generate_help(cls) -> str:
-        help_lines = []
-        fields = dataclasses.fields(cls)
-        max_name_length = max((len(f.name) for f in fields))
-        for field in fields:
-            help_line = field.name.upper()
-            help_line += " " * (max_name_length - len(field.name) + 2)
-            help_line += field.metadata["help"]
-            if field.default is not dataclasses.MISSING:
-                help_line += f" (default: {field.default})"
-            help_lines.append(help_line)
-        return "\n".join(help_lines)
+    def help(cls) -> str:
+        @dataclasses.dataclass
+        class HelpLine:
+            env_var: str
+            help_text: str
+            default_value: Union[str, None]
 
+            def as_str(self, max_name_length: int) -> str:
+                padding = " " * (max_name_length - len(self.env_var) + 2)
+                default = (
+                    f" (default: {self.default_value})" if self.default_value else ""
+                )
+                return f"{self.env_var}{padding}{self.help_text}{default}"
 
-config = _Config()
+        help_lines: List[HelpLine] = []
+        for field in dataclasses.fields(cls):
+            for props in field.type.schema()["properties"].values():
+                env_var = list(props["env_names"])[0].upper()
+                help_text = props["help"]
+                default_value = props.get("default")
+                if default_value:
+                    default_value = str(default_value)
+                help_lines.append(HelpLine(env_var, help_text, default_value))
+
+        max_name_length = max((len(l.env_var) for l in help_lines))
+        return "\n".join((l.as_str(max_name_length) for l in help_lines))

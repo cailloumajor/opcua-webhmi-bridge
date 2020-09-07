@@ -7,10 +7,10 @@ from typing import Any, Dict, Optional
 
 from tap import Tap
 
-from .config import EnvError, config
+from .config import ConfigError, Settings
 from .influxdb import task as influx_writer_task
-from .opcua import client as opc_client
-from .websocket import start_server as start_ws_server
+from .opcua import Client as OPCUAClient
+from .websocket import start_server as start_websocket_server
 
 
 async def shutdown(
@@ -56,7 +56,7 @@ def main() -> None:
 
     parser = ArgumentParser(
         description="Bridge between OPC-UA server and web-based HMI",
-        epilog=f"Environment variables:\n{config.generate_help()}",
+        epilog=f"Environment variables:\n{Settings.help()}",
         formatter_class=RawDescriptionHelpFormatter,
     )
     args = parser.parse_args()
@@ -73,9 +73,9 @@ def main() -> None:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
     try:
-        config.init(args.verbose)
-    except EnvError as err:
-        logging.critical("Configuration error (%s)", err)
+        config = Settings()
+    except ConfigError as err:
+        logging.critical(err)
         logging.info("See `--help` option for more informations")
         sys.exit(2)
 
@@ -93,10 +93,12 @@ def main() -> None:
         )
     loop.set_exception_handler(handle_exception)
 
+    opc_client = OPCUAClient(config.opc)
+
     try:
-        loop.run_until_complete(start_ws_server)
+        loop.run_until_complete(start_websocket_server(config.websocket))
         loop.create_task(opc_client.retrying_task())
-        loop.create_task(influx_writer_task())
+        loop.create_task(influx_writer_task(config.influx))
         loop.run_forever()
     finally:
         loop.close()

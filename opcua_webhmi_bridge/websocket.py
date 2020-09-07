@@ -4,7 +4,7 @@ from typing import Tuple
 
 import websockets
 
-from .config import config
+from .config import WebSocketSettings
 from .pubsub import hub
 
 
@@ -57,4 +57,5 @@ async def _handler(  # noqa: U100
                 break
 
 
-start_server = websockets.serve(_handler, config.websocket_host, config.websocket_port)
+def start_server(config: WebSocketSettings) -> websockets.server.Serve:
+    return websockets.serve(_handler, config.host, config.port)
