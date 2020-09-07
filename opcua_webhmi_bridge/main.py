@@ -12,6 +12,8 @@ from .influxdb import task as influx_writer_task
 from .opcua import Client as OPCUAClient
 from .websocket import start_server as start_websocket_server
 
+app = typer.Typer(add_completion=False)
+
 
 class EnvVarsEpilogCommand(typer.core.TyperCommand):
     def format_epilog(  # noqa: U101
@@ -63,6 +65,7 @@ verbose_option = typer.Option(
 )
 
 
+@app.command(cls=EnvVarsEpilogCommand)
 def main(
     print_config: bool = print_config_option, verbose: bool = verbose_option,
 ) -> None:
@@ -110,9 +113,3 @@ def main(
     finally:
         loop.close()
         logging.info("Shutdown successfull")
-
-
-if __name__ == "__main__":
-    app = typer.Typer(add_completion=False)
-    app.command(cls=EnvVarsEpilogCommand)(main)
-    app()

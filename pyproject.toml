@@ -5,6 +5,9 @@ description = "Bridge between OPC-UA server and web-based HMI"
 authors = ["Arnaud Rocher <arnaud.roche3@gmail.com>"]
 license = "MIT"
 
+[tool.poetry.scripts]
+opcua-agent = "opcua_webhmi_bridge.main:app"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 asyncua = "^0.8.3"

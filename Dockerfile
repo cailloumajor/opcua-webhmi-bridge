@@ -9,14 +9,12 @@ RUN curl -sSL $POETRY_URL | python - --version=1.0.10
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock ./
+COPY . ./
 
 # hadolint ignore=SC1091
 RUN python -m venv .venv \
     && . .venv/bin/activate \
     && "$HOME"/.poetry/bin/poetry install --no-dev --no-interaction
-
-COPY . ./
 
 FROM python:3.8-slim
 
@@ -34,4 +32,4 @@ COPY --from=builder --chown=pythonapp:pythonapp /app /app
 
 EXPOSE 3000
 
-CMD [".venv/bin/python", "-m", "opcua_webhmi_bridge"]
+CMD [".venv/bin/opcua-agent"]
