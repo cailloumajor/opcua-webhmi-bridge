@@ -1,6 +1,6 @@
 import dataclasses
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Union, cast
+from typing import TYPE_CHECKING, List, Tuple, cast
 
 from pydantic import AnyUrl, BaseSettings, Field, PositiveInt, stricturl
 from pydantic.error_wrappers import ValidationError
@@ -68,29 +68,13 @@ class Settings:
             raise ConfigError(f"{env_var} environment variable: {first_error['msg']}")
 
     @classmethod
-    def help(cls) -> str:
-        @dataclasses.dataclass
-        class HelpLine:
-            env_var: str
-            help_text: str
-            default_value: Union[str, None]
-
-            def as_str(self, max_name_length: int) -> str:
-                padding = " " * (max_name_length - len(self.env_var) + 2)
-                default = (
-                    f" (default: {self.default_value})" if self.default_value else ""
-                )
-                return f"{self.env_var}{padding}{self.help_text}{default}"
-
-        help_lines: List[HelpLine] = []
+    def help(cls) -> List[Tuple[str, str]]:
+        env_vars_tuples: List[Tuple[str, str]] = []
         for field in dataclasses.fields(cls):
             for props in field.type.schema()["properties"].values():
                 env_var = list(props["env_names"])[0].upper()
                 help_text = props["help"]
                 default_value = props.get("default")
-                if default_value:
-                    default_value = str(default_value)
-                help_lines.append(HelpLine(env_var, help_text, default_value))
-
-        max_name_length = max((len(l.env_var) for l in help_lines))
-        return "\n".join((l.as_str(max_name_length) for l in help_lines))
+                default = f" (default: {default_value})" if default_value else ""
+                env_vars_tuples.append((env_var, f"{help_text}{default}"))
+        return env_vars_tuples

@@ -2,15 +2,24 @@ import asyncio
 import logging
 import signal
 import sys
-from argparse import RawDescriptionHelpFormatter
 from typing import Any, Dict, Optional
 
-from tap import Tap
+import click
+import typer
 
 from .config import ConfigError, Settings
 from .influxdb import task as influx_writer_task
 from .opcua import Client as OPCUAClient
 from .websocket import start_server as start_websocket_server
+
+
+class EnvVarsEpilogCommand(typer.core.TyperCommand):
+    def format_epilog(  # noqa: U101
+        self, _: click.Context, formatter: click.HelpFormatter
+    ) -> None:
+        """Writes each line of the epilog, thus preserving newlines."""
+        with formatter.section("Environment variables"):
+            formatter.write_dl(Settings.help())
 
 
 async def shutdown(
@@ -46,26 +55,24 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
     asyncio.create_task(shutdown(loop))
 
 
-def main() -> None:
-    class ArgumentParser(Tap):
-        config: bool = False  # Print configuration object and exit
-        verbose: bool = False  # Be more verbose (print debug informations)
+print_config_option = typer.Option(
+    False, "--config", help="Print configuration object and exit",
+)
+verbose_option = typer.Option(
+    False, "--verbose", "-v", help="Be more verbose (print debug informations)"
+)
 
-        def add_arguments(self) -> None:
-            self.add_argument("-v", "--verbose")
 
-    parser = ArgumentParser(
-        description="Bridge between OPC-UA server and web-based HMI",
-        epilog=f"Environment variables:\n{Settings.help()}",
-        formatter_class=RawDescriptionHelpFormatter,
-    )
-    args = parser.parse_args()
+def main(
+    print_config: bool = print_config_option, verbose: bool = verbose_option,
+) -> None:
+    """Bridge between OPC-UA server and web-based HMI."""
 
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s:%(message)s",
-        level=logging.DEBUG if args.verbose else logging.INFO,
+        level=logging.DEBUG if verbose else logging.INFO,
     )
-    if not args.verbose:
+    if not verbose:
         for logger in [
             "asyncua.common.subscription",
             "asyncua.client.ua_client.UASocketProtocol",
@@ -73,18 +80,18 @@ def main() -> None:
             logging.getLogger(logger).setLevel(logging.ERROR)
 
     try:
-        config = Settings()
+        env_settings = Settings()
     except ConfigError as err:
         logging.critical(err)
         logging.info("See `--help` option for more informations")
         sys.exit(2)
 
-    if args.config:
-        print(config)
+    if print_config:
+        print(env_settings)
         sys.exit()
 
     loop = asyncio.get_event_loop()
-    loop.set_debug(args.verbose)
+    loop.set_debug(verbose)
 
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
     for s in signals:
@@ -93,12 +100,12 @@ def main() -> None:
         )
     loop.set_exception_handler(handle_exception)
 
-    opc_client = OPCUAClient(config.opc)
+    opc_client = OPCUAClient(env_settings.opc)
 
     try:
-        loop.run_until_complete(start_websocket_server(config.websocket))
+        loop.run_until_complete(start_websocket_server(env_settings.websocket))
         loop.create_task(opc_client.retrying_task())
-        loop.create_task(influx_writer_task(config.influx))
+        loop.create_task(influx_writer_task(env_settings.influx))
         loop.run_forever()
     finally:
         loop.close()
@@ -106,4 +113,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    app = typer.Typer(add_completion=False)
+    app.command(cls=EnvVarsEpilogCommand)(main)
+    app()
