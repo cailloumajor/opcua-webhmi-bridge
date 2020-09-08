@@ -7,15 +7,16 @@ from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
 from .config import OPCSettings
-from .influxdb import queue as influxdb_queue
+from .influxdb import InfluxDBQueue
 from .pubsub import OPCDataChangeMessage, OPCStatusMessage, hub
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
 class Client:
-    def __init__(self, config: OPCSettings):
+    def __init__(self, config: OPCSettings, influxdb_queue: InfluxDBQueue):
         self.config = config
+        self.influxdb_queue = influxdb_queue
         self._status = False
 
     async def _task(self) -> None:
@@ -54,7 +55,10 @@ class Client:
         message = OPCDataChangeMessage(node_id=node_id, data=val)
         hub.publish(message)
         if node_id in self.config.record_nodes:
-            influxdb_queue.put_nowait(message)
+            try:
+                self.influxdb_queue.put_nowait(message)
+            except asyncio.QueueFull:
+                logging.error("InfluxDB message queue is full, message discarded")
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         if self._status:

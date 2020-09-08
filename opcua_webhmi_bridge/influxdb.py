@@ -4,19 +4,21 @@ import asyncio
 import logging
 import warnings
 from itertools import chain, starmap
-from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
-import tenacity
+from aiohttp import ClientError
 
 from .config import InfluxSettings
 from .pubsub import OPCDataChangeMessage
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
-    import aioinflux
+    from aioinflux import InfluxDBClient, InfluxDBError
 
-
-queue: asyncio.Queue[OPCDataChangeMessage] = asyncio.Queue(maxsize=600)
+if TYPE_CHECKING:
+    InfluxDBQueue = asyncio.Queue[OPCDataChangeMessage]
+else:
+    InfluxDBQueue = asyncio.Queue
 
 
 class InfluxPoint(TypedDict):
@@ -67,16 +69,19 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
         return {"measurement": measurement, "tags": {}, "fields": flatten(data)}
 
 
-async def task(config: InfluxSettings) -> None:
-    logging.debug("InfluxDB writer task running")
-    async with aioinflux.InfluxDBClient(
-        host=config.host, port=config.port, db=config.db_name,
-    ) as client:
-        while True:
-            points = to_influx(await queue.get())
-            retryer = tenacity.AsyncRetrying(  # type: ignore
-                wait=tenacity.wait_fixed(5),
-                before=tenacity.before_log(logging, logging.DEBUG),
-                before_sleep=tenacity.before_sleep_log(logging, logging.INFO),
-            )
-            await retryer.call(client.write, points)
+class Writer:
+    def __init__(self, config: InfluxSettings):
+        self.config = config
+        self.queue: InfluxDBQueue = asyncio.Queue(maxsize=1)
+
+    async def task(self) -> None:
+        logging.info("InfluxDB writer task running")
+        async with InfluxDBClient(
+            host=self.config.host, port=self.config.port, db=self.config.db_name,
+        ) as client:
+            while True:
+                points = to_influx(await self.queue.get())
+                try:
+                    await client.write(points)
+                except (ClientError, InfluxDBError) as err:
+                    logging.error("InfluxDB write error: %s", err)
