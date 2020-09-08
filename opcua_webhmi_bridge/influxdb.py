@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import warnings
 from itertools import chain, starmap
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Tuple, TypedDict, Union
+from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
 from aiohttp import ClientError
 
+from ._utils import GenericWriter
 from .config import InfluxSettings
-from .pubsub import OPCDataChangeMessage
+from .opcua import OPCDataChangeMessage
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
     from aioinflux import InfluxDBClient, InfluxDBError
-
-if TYPE_CHECKING:
-    InfluxDBQueue = asyncio.Queue[OPCDataChangeMessage]
-else:
-    InfluxDBQueue = asyncio.Queue
 
 
 class InfluxPoint(TypedDict):
@@ -53,7 +48,7 @@ def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPoint]]:
-    data: Union[List[Dict[str, Any]], Dict[str, Any]] = message.to_python()["data"]
+    data: Union[List[Dict[str, Any]], Dict[str, Any]] = message.asdict()["data"]
     measurement = message.node_id.replace('"', "")
     if isinstance(data, list):
         index_tag = measurement.split(".")[-1] + "_index"
@@ -69,18 +64,15 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
         return {"measurement": measurement, "tags": {}, "fields": flatten(data)}
 
 
-class Writer:
-    def __init__(self, config: InfluxSettings):
-        self.config = config
-        self.queue: InfluxDBQueue = asyncio.Queue(maxsize=1)
+class InfluxDBWriter(GenericWriter[OPCDataChangeMessage, InfluxSettings]):
+    purpose = "InfluxDB"
 
-    async def task(self) -> None:
-        logging.info("InfluxDB writer task running")
+    async def _task(self) -> None:
         async with InfluxDBClient(
-            host=self.config.host, port=self.config.port, db=self.config.db_name,
+            host=self._config.host, port=self._config.port, db=self._config.db_name,
         ) as client:
             while True:
-                points = to_influx(await self.queue.get())
+                points = to_influx(await self._queue.get())
                 try:
                     await client.write(points)
                 except (ClientError, InfluxDBError) as err:

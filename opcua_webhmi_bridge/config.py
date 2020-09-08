@@ -2,7 +2,15 @@ import dataclasses
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple, cast
 
-from pydantic import AnyUrl, BaseSettings, Field, PositiveInt, stricturl
+from pydantic import (
+    AnyUrl,
+    BaseSettings,
+    Field,
+    HttpUrl,
+    PositiveInt,
+    SecretStr,
+    stricturl,
+)
 from pydantic.error_wrappers import ValidationError
 
 if TYPE_CHECKING:
@@ -24,6 +32,16 @@ class InfluxSettings(BaseSettings):
         env_prefix = "influx_"
 
 
+class MessagingSettings(BaseSettings):
+    api_key: SecretStr = Field(..., help="Centrifugo API key")
+    centrifugo_url: HttpUrl = Field(
+        "http://localhost:8000", help="URL of Centrifugo HTTP api"
+    )
+
+    class Config:
+        env_prefix = "messaging_"
+
+
 class OPCSettings(BaseSettings):
     server_url: OpcUrl = Field(..., help="URL of the OPC-UA server")
     monitor_nodes: List[str] = Field(
@@ -40,19 +58,11 @@ class OPCSettings(BaseSettings):
         env_prefix = "opc_"
 
 
-class WebSocketSettings(BaseSettings):
-    host: str = Field("0.0.0.0", help="WebSocket server bind address")
-    port: PositiveInt = Field(3000, help="WebSocket server port")
-
-    class Config:
-        env_prefix = "websocket_"
-
-
 @dataclasses.dataclass
 class Settings:
     influx: InfluxSettings
+    messaging: MessagingSettings
     opc: OPCSettings
-    websocket: WebSocketSettings
 
     def __init__(self) -> None:
         env_file = Path(__file__).parent / "../.env"

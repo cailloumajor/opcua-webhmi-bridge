@@ -8,9 +8,9 @@ import click
 import typer
 
 from .config import ConfigError, Settings
-from .influxdb import Writer as InfluxDBWriter
-from .opcua import Client as OPCUAClient
-from .websocket import start_server as start_websocket_server
+from .frontend_messaging import FrontendMessagingWriter
+from .influxdb import InfluxDBWriter
+from .opcua import OPCUAClient
 
 app = typer.Typer(add_completion=False)
 
@@ -103,13 +103,14 @@ def main(
         )
     loop.set_exception_handler(handle_exception)
 
+    frontend_messaging_writer = FrontendMessagingWriter(env_settings.messaging)
     influx_writer = InfluxDBWriter(env_settings.influx)
-    opc_client = OPCUAClient(env_settings.opc, influx_writer.queue)
+    opc_client = OPCUAClient(env_settings.opc, influx_writer, frontend_messaging_writer)
 
     try:
-        loop.run_until_complete(start_websocket_server(env_settings.websocket))
+        loop.create_task(frontend_messaging_writer.run_task())
+        loop.create_task(influx_writer.run_task())
         loop.create_task(opc_client.retrying_task())
-        loop.create_task(influx_writer.task())
         loop.run_forever()
     finally:
         loop.close()
