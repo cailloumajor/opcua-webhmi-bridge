@@ -9,9 +9,8 @@ import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
+from ._utils import GenericWriter
 from .config import OPCSettings
-from .frontend_messaging import FrontendMessagingWriter
-from .influxdb import InfluxDBWriter
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
@@ -55,8 +54,8 @@ class OPCUAClient:
     def __init__(
         self,
         config: OPCSettings,
-        influx_writer: InfluxDBWriter,
-        frontend_messaging_writer: FrontendMessagingWriter,
+        influx_writer: GenericWriter[OPCDataChangeMessage, Any],
+        frontend_messaging_writer: GenericWriter[OPCMessage, Any],
     ):
         self._config = config
         self._frontend_messaging_writer = frontend_messaging_writer
