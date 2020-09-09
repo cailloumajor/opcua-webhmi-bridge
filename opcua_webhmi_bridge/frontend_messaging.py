@@ -26,7 +26,7 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
                     },
                 }
                 try:
-                    await session.post(self._config.centrifugo_url, json=command)
+                    await session.post(self._config.api_url, json=command)
                 except ClientError as err:
                     logging.error(
                         "Frontend messaging %s error: %s", command["method"], err
