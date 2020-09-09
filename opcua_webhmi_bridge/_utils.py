@@ -12,7 +12,7 @@ CT = TypeVar("CT", bound=BaseSettings)
 class GenericWriter(ABC, Generic[T, CT]):
     def __init__(self, config: CT):
         self._config = config
-        self._queue: Queue[T] = Queue(maxsize=1)
+        self._queue: Queue[T] = Queue(maxsize=10)
 
     def put(self, message: T) -> None:
         try:
