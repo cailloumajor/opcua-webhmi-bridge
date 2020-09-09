@@ -35,7 +35,7 @@ class InfluxSettings(BaseSettings):
 class MessagingSettings(BaseSettings):
     api_key: SecretStr = Field(..., help="Centrifugo API key")
     centrifugo_url: AnyHttpUrl = Field(
-        "http://localhost:8000", help="URL of Centrifugo HTTP api"
+        "http://localhost:8000/api", help="URL of Centrifugo HTTP api"
     )
 
     class Config:
