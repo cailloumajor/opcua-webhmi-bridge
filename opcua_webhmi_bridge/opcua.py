@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from dataclasses import InitVar, asdict, dataclass, field
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import asyncua
 import tenacity
@@ -34,7 +34,7 @@ class BaseMessage:
 class OPCDataChangeMessage(BaseMessage):
     message_type = "opc_data_change"
     node_id: str
-    payload: Dict[str, Any] = field(init=False)
+    payload: Union[List[Dict[str, Any]], Dict[str, Any]] = field(init=False)
     ua_object: InitVar[ua.ExtensionObject]
 
     def __post_init__(self, ua_object: ua.ExtensionObject) -> None:

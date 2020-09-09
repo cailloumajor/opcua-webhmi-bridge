@@ -48,9 +48,8 @@ def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPoint]]:
-    data: Union[List[Dict[str, Any]], Dict[str, Any]] = message.asdict()["data"]
     measurement = message.node_id.replace('"', "")
-    if isinstance(data, list):
+    if isinstance(message.payload, list):
         index_tag = measurement.split(".")[-1] + "_index"
         return [
             {
@@ -58,10 +57,14 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
                 "tags": {index_tag: str(index)},
                 "fields": flatten(elem),
             }
-            for index, elem in enumerate(data)
+            for index, elem in enumerate(message.payload)
         ]
     else:
-        return {"measurement": measurement, "tags": {}, "fields": flatten(data)}
+        return {
+            "measurement": measurement,
+            "tags": {},
+            "fields": flatten(message.payload),
+        }
 
 
 class InfluxDBWriter(GenericWriter[OPCDataChangeMessage, InfluxSettings]):
