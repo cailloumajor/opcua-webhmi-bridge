@@ -10,6 +10,7 @@
             "request": "launch",
             "program": ".venv/bin/opcua-agent",
             "console": "integratedTerminal",
+            "envFile": "",
             "justMyCode": false
         }
     ]
