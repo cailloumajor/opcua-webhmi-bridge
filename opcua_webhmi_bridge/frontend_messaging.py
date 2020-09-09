@@ -9,7 +9,8 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
     purpose = "Frontend messaging"
 
     async def _task(self) -> None:
-        headers = {"Authorization": f"apikey {self._config.api_key}"}
+        api_key = self._config.api_key.get_secret_value()
+        headers = {"Authorization": f"apikey {api_key}"}
         async with aiohttp.ClientSession(headers=headers) as session:
             while True:
                 message = await self._queue.get()
