@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple, cast
 
 from pydantic import (
+    AnyHttpUrl,
     AnyUrl,
     BaseSettings,
     Field,
-    HttpUrl,
     PositiveInt,
     SecretStr,
     stricturl,
@@ -34,7 +34,7 @@ class InfluxSettings(BaseSettings):
 
 class MessagingSettings(BaseSettings):
     api_key: SecretStr = Field(..., help="Centrifugo API key")
-    centrifugo_url: HttpUrl = Field(
+    centrifugo_url: AnyHttpUrl = Field(
         "http://localhost:8000", help="URL of Centrifugo HTTP api"
     )
 
