@@ -5,7 +5,7 @@ import warnings
 from itertools import chain, starmap
 from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
-from aiohttp import ClientError
+from aiohttp import ClientError, ClientTimeout
 
 from ._utils import GenericWriter
 from .config import InfluxSettings
@@ -72,7 +72,10 @@ class InfluxDBWriter(GenericWriter[OPCDataChangeMessage, InfluxSettings]):
 
     async def _task(self) -> None:
         async with InfluxDBClient(
-            host=self._config.host, port=self._config.port, db=self._config.db_name,
+            host=self._config.host,
+            port=self._config.port,
+            db=self._config.db_name,
+            timeout=ClientTimeout(total=5),
         ) as client:
             while True:
                 points = to_influx(await self._queue.get())

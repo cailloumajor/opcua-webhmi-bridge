@@ -1,6 +1,6 @@
 import logging
 
-from aiohttp import ClientError, ClientSession
+from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._utils import GenericWriter
 from .config import MessagingSettings
@@ -13,7 +13,9 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
     async def _task(self) -> None:
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
-        async with ClientSession(headers=headers, raise_for_status=True) as session:
+        async with ClientSession(
+            headers=headers, raise_for_status=True, timeout=ClientTimeout(total=10)
+        ) as session:
             while True:
                 message = await self._queue.get()
                 command = {
