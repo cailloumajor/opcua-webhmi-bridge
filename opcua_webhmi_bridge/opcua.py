@@ -9,6 +9,7 @@ from asyncua.common.subscription import SubscriptionItemData
 
 from ._utils import GenericWriter
 from .config import OPCSettings
+from .frontend_messaging import BackendServer
 from .messages import OPCDataChangeMessage, OPCMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
@@ -18,10 +19,12 @@ class OPCUAClient:
     def __init__(
         self,
         config: OPCSettings,
+        backend_server: BackendServer,
         influx_writer: GenericWriter[OPCDataChangeMessage, Any],
         frontend_messaging_writer: GenericWriter[OPCMessage, Any],
     ):
         self._config = config
+        self._backend_server = backend_server
         self._frontend_messaging_writer = frontend_messaging_writer
         self._influx_writer = influx_writer
         self._status = False
@@ -62,6 +65,7 @@ class OPCUAClient:
         logging.debug("datachange_notification for %s %s", node_id, val)
         self._status = True
         message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
+        self._backend_server.record_last_state(message)
         self._frontend_messaging_writer.put(message)
         if node_id in self._config.record_nodes:
             self._influx_writer.put(message)

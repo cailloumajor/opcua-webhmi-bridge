@@ -30,6 +30,6 @@ WORKDIR /app
 
 COPY --from=builder --chown=pythonapp:pythonapp /app /app
 
-EXPOSE 3000
+EXPOSE 8008
 
 CMD [".venv/bin/opcua-agent"]

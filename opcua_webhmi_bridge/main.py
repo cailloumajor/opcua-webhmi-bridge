@@ -8,7 +8,7 @@ import click
 import typer
 
 from .config import ConfigError, Settings
-from .frontend_messaging import FrontendMessagingWriter
+from .frontend_messaging import BackendServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
 from .opcua import OPCUAClient
 
@@ -103,11 +103,15 @@ def main(
         )
     loop.set_exception_handler(handle_exception)
 
+    backend_server = BackendServer(env_settings.messaging)
     frontend_messaging_writer = FrontendMessagingWriter(env_settings.messaging)
     influx_writer = InfluxDBWriter(env_settings.influx)
-    opc_client = OPCUAClient(env_settings.opc, influx_writer, frontend_messaging_writer)
+    opc_client = OPCUAClient(
+        env_settings.opc, backend_server, influx_writer, frontend_messaging_writer
+    )
 
     try:
+        loop.run_until_complete(backend_server.start())
         loop.create_task(frontend_messaging_writer.run_task())
         loop.create_task(influx_writer.run_task())
         loop.create_task(opc_client.retrying_task())
