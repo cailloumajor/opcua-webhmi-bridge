@@ -20,7 +20,10 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
                 message = await self._queue.get()
                 command = {
                     "method": "publish",
-                    "params": {"channel": "opcua", "data": message.asdict()},
+                    "params": {
+                        "channel": message.message_type,
+                        "data": message.frontend_data,
+                    },
                 }
                 try:
                     await session.post(self._config.centrifugo_url, json=command)

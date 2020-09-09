@@ -26,8 +26,9 @@ class OPCUAEncoder(json.JSONEncoder):
 class BaseMessage:
     message_type: str = field(init=False)
 
-    def asdict(self) -> Dict[str, Any]:
-        return asdict(self)
+    @property
+    def frontend_data(self) -> Dict[str, Any]:
+        return {k: v for k, v in asdict(self).items() if k != "message_type"}
 
 
 @dataclass
