@@ -25,8 +25,8 @@ class ConfigError(ValueError):
 
 class InfluxSettings(BaseSettings):
     db_name: str = Field(..., help="Name of the InfluxDB database to use")
-    host: str = Field("localhost", help="Hostname to connect to InfluxDB")
-    port: PositiveInt = Field(8086, help="Port to connect to InfluxDB")
+    host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
+    port: PositiveInt = Field(8086, help="Port on which InfluxDB server is reachable")
 
     class Config:
         env_prefix = "influx_"
