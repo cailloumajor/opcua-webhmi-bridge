@@ -4,7 +4,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._utils import GenericWriter
 from .config import MessagingSettings
-from .opcua import OPCMessage
+from .messages import OPCMessage
 
 
 class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):

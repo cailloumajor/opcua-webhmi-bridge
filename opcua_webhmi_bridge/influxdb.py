@@ -9,7 +9,7 @@ from aiohttp import ClientError, ClientTimeout
 
 from ._utils import GenericWriter
 from .config import InfluxSettings
-from .opcua import OPCDataChangeMessage
+from .messages import OPCDataChangeMessage
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)

@@ -1,8 +1,6 @@
 import asyncio
-import json
 import logging
-from dataclasses import InitVar, asdict, dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import asyncua
 import tenacity
@@ -11,44 +9,9 @@ from asyncua.common.subscription import SubscriptionItemData
 
 from ._utils import GenericWriter
 from .config import OPCSettings
+from .messages import OPCDataChangeMessage, OPCMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
-
-
-class OPCUAEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if hasattr(o, "ua_types"):
-            return {elem: getattr(o, elem) for elem, _ in o.ua_types}
-        return super().default(o)
-
-
-@dataclass
-class BaseMessage:
-    message_type: str = field(init=False)
-
-    @property
-    def frontend_data(self) -> Dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if k != "message_type"}
-
-
-@dataclass
-class OPCDataChangeMessage(BaseMessage):
-    message_type = "opc_data_change"
-    node_id: str
-    payload: Union[List[Dict[str, Any]], Dict[str, Any]] = field(init=False)
-    ua_object: InitVar[ua.ExtensionObject]
-
-    def __post_init__(self, ua_object: ua.ExtensionObject) -> None:
-        self.payload = json.loads(json.dumps(ua_object, cls=OPCUAEncoder))
-
-
-@dataclass
-class OPCStatusMessage(BaseMessage):
-    message_type = "opc_status"
-    payload: bool
-
-
-OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
 
 class OPCUAClient:
