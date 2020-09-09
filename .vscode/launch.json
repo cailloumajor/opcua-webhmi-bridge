@@ -5,17 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Module",
+            "name": "Python: Application",
             "type": "python",
             "request": "launch",
-            "module": "opcua_webhmi_bridge",
-            "justMyCode": false
-        },
-        {
-            "name": "Python : Fichier actuel",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
+            "program": ".venv/bin/opcua-agent",
             "console": "integratedTerminal",
             "justMyCode": false
         }
