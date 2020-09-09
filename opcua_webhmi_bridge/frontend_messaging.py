@@ -1,4 +1,6 @@
-import aiohttp
+import logging
+
+from aiohttp import ClientError, ClientSession
 
 from ._utils import GenericWriter
 from .config import MessagingSettings
@@ -11,11 +13,16 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
     async def _task(self) -> None:
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, raise_for_status=True) as session:
             while True:
                 message = await self._queue.get()
                 command = {
                     "method": "publish",
                     "params": {"channel": "opcua", "data": message.asdict()},
                 }
-                await session.post(self._config.centrifugo_url, json=command)
+                try:
+                    await session.post(self._config.centrifugo_url, json=command)
+                except ClientError as err:
+                    logging.error(
+                        "Frontend messaging %s error: %s", command["method"], err
+                    )
