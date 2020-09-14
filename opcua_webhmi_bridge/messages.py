@@ -1,3 +1,4 @@
+import enum
 import json
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Any, Dict, List, Union
@@ -34,10 +35,16 @@ class OPCDataChangeMessage(BaseMessage):
         self.payload = json.loads(json.dumps(ua_object, cls=OPCUAEncoder))
 
 
+@enum.unique
+class LinkStatus(str, enum.Enum):
+    Up = "UP"
+    Down = "DOWN"
+
+
 @dataclass
 class OPCStatusMessage(BaseMessage):
     message_type = "opc_status"
-    payload: bool
+    payload: LinkStatus
 
 
 OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]

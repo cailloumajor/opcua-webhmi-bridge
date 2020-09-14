@@ -10,7 +10,7 @@ from asyncua.common.subscription import SubscriptionItemData
 from ._utils import GenericWriter
 from .config import OPCSettings
 from .frontend_messaging import BackendServer
-from .messages import OPCDataChangeMessage, OPCMessage, OPCStatusMessage
+from .messages import LinkStatus, OPCDataChangeMessage, OPCMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
@@ -27,7 +27,7 @@ class OPCUAClient:
         self._backend_server = backend_server
         self._frontend_messaging_writer = frontend_messaging_writer
         self._influx_writer = influx_writer
-        self._status = False
+        self._status = LinkStatus.Down
 
     async def _task(self) -> None:
         client = asyncua.Client(url=self._config.server_url)
@@ -58,22 +58,26 @@ class OPCUAClient:
                 await asyncio.sleep(5)
                 await server_state.read_data_value()
 
+    def set_status(self, status: LinkStatus) -> None:
+        self._backend_server.last_opc_status = status
+        if status != self._status:
+            self._status = status
+            self._frontend_messaging_writer.put(OPCStatusMessage(payload=status))
+
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
     ) -> None:
         node_id = node.nodeid.Identifier
         logging.debug("datachange_notification for %s %s", node_id, val)
-        self._status = True
+        self.set_status(LinkStatus.Up)
         message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
-        self._backend_server.record_last_state(message)
+        self._backend_server.record_last_opc_data(message)
         self._frontend_messaging_writer.put(message)
         if node_id in self._config.record_nodes:
             self._influx_writer.put(message)
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
-        if self._status:
-            self._frontend_messaging_writer.put(OPCStatusMessage(payload=False))
-        self._status = False
+        self.set_status(LinkStatus.Down)
         exc = retry_state.outcome.exception()  # type: ignore
         logging.info(
             "Retrying OPC client task in %s seconds as it raised %s: %s",

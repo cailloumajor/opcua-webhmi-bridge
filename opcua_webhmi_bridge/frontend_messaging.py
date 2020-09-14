@@ -6,7 +6,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from ._utils import GenericWriter
 from .config import MessagingSettings
-from .messages import DataChangePayload, OPCDataChangeMessage, OPCMessage
+from .messages import DataChangePayload, LinkStatus, OPCDataChangeMessage, OPCMessage
 
 
 class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
@@ -38,15 +38,22 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
 class BackendServer:
     def __init__(self, config: MessagingSettings) -> None:
         self._config = config
-        self._last_state: Dict[str, DataChangePayload] = {}
+        self._last_opc_data: Dict[str, DataChangePayload] = {}
+        self.last_opc_status: LinkStatus = LinkStatus.Down
 
-    def record_last_state(self, message: OPCDataChangeMessage) -> None:
-        self._last_state[message.node_id] = message.payload
+    def record_last_opc_data(self, message: OPCDataChangeMessage) -> None:
+        self._last_opc_data[message.node_id] = message.payload
 
     async def hello(self, request: web.Request) -> web.Response:  # noqa: U100
         token = jwt.encode({"sub": ""}, self._config.secret_key.get_secret_value())
-        last_state = [{"node_id": k, "payload": v} for k, v in self._last_state.items()]
-        resp_data = {"token": token.decode(), "last_state": last_state}
+        last_opc_data = [
+            {"node_id": k, "payload": v} for k, v in self._last_opc_data.items()
+        ]
+        resp_data = {
+            "token": token.decode(),
+            "last_opc_data": last_opc_data,
+            "last_opc_status": self.last_opc_status,
+        }
         return web.json_response(resp_data)
 
     async def start(self) -> None:
