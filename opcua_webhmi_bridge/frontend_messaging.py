@@ -41,6 +41,9 @@ class BackendServer:
         self._last_opc_data: Dict[str, DataChangePayload] = {}
         self.last_opc_status: LinkStatus = LinkStatus.Down
 
+    def clear_last_opc_data(self) -> None:
+        self._last_opc_data = {}
+
     def record_last_opc_data(self, message: OPCDataChangeMessage) -> None:
         self._last_opc_data[message.node_id] = message.payload
 

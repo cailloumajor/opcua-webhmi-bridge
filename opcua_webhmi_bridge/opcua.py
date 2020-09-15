@@ -59,6 +59,8 @@ class OPCUAClient:
                 await server_state.read_data_value()
 
     def set_status(self, status: LinkStatus) -> None:
+        if status != LinkStatus.Up:
+            self._backend_server.clear_last_opc_data()
         self._backend_server.last_opc_status = status
         if status != self._status:
             self._status = status
