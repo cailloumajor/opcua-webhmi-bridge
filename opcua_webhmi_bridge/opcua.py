@@ -10,7 +10,12 @@ from asyncua.common.subscription import SubscriptionItemData
 from ._utils import GenericWriter
 from .config import OPCSettings
 from .frontend_messaging import BackendServer
-from .messages import LinkStatus, OPCDataChangeMessage, OPCMessage, OPCStatusMessage
+from .messages import (
+    FrontendMessage,
+    LinkStatus,
+    OPCDataChangeMessage,
+    OPCStatusMessage,
+)
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
@@ -21,7 +26,7 @@ class OPCUAClient:
         config: OPCSettings,
         backend_server: BackendServer,
         influx_writer: GenericWriter[OPCDataChangeMessage, Any],
-        frontend_messaging_writer: GenericWriter[OPCMessage, Any],
+        frontend_messaging_writer: GenericWriter[FrontendMessage, Any],
     ):
         self._config = config
         self._backend_server = backend_server

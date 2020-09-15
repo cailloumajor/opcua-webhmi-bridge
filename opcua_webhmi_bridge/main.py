@@ -113,6 +113,7 @@ def main(
     try:
         loop.run_until_complete(backend_server.start())
         loop.create_task(frontend_messaging_writer.run_task())
+        loop.create_task(frontend_messaging_writer.heartbeat_task())
         loop.create_task(influx_writer.run_task())
         loop.create_task(opc_client.retrying_task())
         loop.run_forever()

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Dict
 
@@ -6,10 +7,16 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from ._utils import GenericWriter
 from .config import MessagingSettings
-from .messages import DataChangePayload, LinkStatus, OPCDataChangeMessage, OPCMessage
+from .messages import (
+    DataChangePayload,
+    FrontendMessage,
+    HeartBeatMessage,
+    LinkStatus,
+    OPCDataChangeMessage,
+)
 
 
-class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
+class FrontendMessagingWriter(GenericWriter[FrontendMessage, MessagingSettings]):
     purpose = "Frontend messaging"
 
     async def _task(self) -> None:
@@ -33,6 +40,11 @@ class FrontendMessagingWriter(GenericWriter[OPCMessage, MessagingSettings]):
                     logging.error(
                         "Frontend messaging %s error: %s", command["method"], err
                     )
+
+    async def heartbeat_task(self) -> None:
+        while True:
+            await asyncio.sleep(5)
+            self.put(HeartBeatMessage())
 
 
 class BackendServer:
@@ -59,17 +71,9 @@ class BackendServer:
         }
         return web.json_response(resp_data)
 
-    async def ws_echo(self, request: web.Request) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-        async for msg in ws:
-            await ws.send_str(msg.data)
-        return ws
-
     async def start(self) -> None:
         app = web.Application()
         app.router.add_get("/hello", self.hello)
-        app.router.add_get("/ws_echo", self.ws_echo)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, self._config.backend_host, self._config.backend_port)

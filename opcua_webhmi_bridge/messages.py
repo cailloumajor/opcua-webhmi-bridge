@@ -47,4 +47,10 @@ class OPCStatusMessage(BaseMessage):
     payload: LinkStatus
 
 
-OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
+@dataclass
+class HeartBeatMessage(BaseMessage):
+    message_type = "heartbeat"
+    payload: None = None
+
+
+FrontendMessage = Union[OPCDataChangeMessage, OPCStatusMessage, HeartBeatMessage]
