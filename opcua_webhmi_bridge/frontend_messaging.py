@@ -59,9 +59,17 @@ class BackendServer:
         }
         return web.json_response(resp_data)
 
+    async def ws_echo(self, request: web.Request) -> web.WebSocketResponse:
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        async for msg in ws:
+            await ws.send_str(msg.data)
+        return ws
+
     async def start(self) -> None:
         app = web.Application()
-        app.router.add_get("/centrifuge/hello", self.hello)
+        app.router.add_get("/hello", self.hello)
+        app.router.add_get("/ws_echo", self.ws_echo)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, self._config.backend_host, self._config.backend_port)
