@@ -9,7 +9,8 @@ RUN curl -sSL $POETRY_URL | python - --version=1.0.10
 
 WORKDIR /app
 
-COPY . ./
+COPY opcua_webhmi_bridge ./opcua_webhmi_bridge
+COPY poetry.lock pyproject.toml ./
 
 # hadolint ignore=SC1091
 RUN python -m venv .venv \
