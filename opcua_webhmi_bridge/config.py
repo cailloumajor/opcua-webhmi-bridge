@@ -25,7 +25,6 @@ class ConfigError(ValueError):
 
 class CentrifugoSettings(BaseSettings):
     api_key: SecretStr = Field(..., help="Centrifugo API key")
-    token_hmac_secret_key: SecretStr = Field(..., help="Centrifugo secret key")
     api_url: AnyHttpUrl = Field(
         "http://localhost:8000/api", help="URL of Centrifugo HTTP api"
     )

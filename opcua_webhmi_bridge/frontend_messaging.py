@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import Dict
 
-import jwt
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from ._utils import GenericWriter
@@ -60,14 +59,10 @@ class BackendServer:
         self._last_opc_data[message.node_id] = message.payload
 
     async def hello(self, request: web.Request) -> web.Response:  # noqa: U100
-        token = jwt.encode(
-            {"sub": ""}, self._config.token_hmac_secret_key.get_secret_value()
-        )
         last_opc_data = [
             {"node_id": k, "payload": v} for k, v in self._last_opc_data.items()
         ]
         resp_data = {
-            "token": token.decode(),
             "last_opc_data": last_opc_data,
             "last_opc_status": self.last_opc_status,
         }
