@@ -9,7 +9,7 @@ from asyncua.common.subscription import SubscriptionItemData
 
 from ._utils import GenericWriter
 from .config import OPCSettings
-from .frontend_messaging import BackendServer
+from .frontend_messaging import CentrifugoProxyServer
 from .messages import (
     FrontendMessage,
     LinkStatus,
@@ -24,12 +24,12 @@ class OPCUAClient:
     def __init__(
         self,
         config: OPCSettings,
-        backend_server: BackendServer,
+        centrifugo_proxy_server: CentrifugoProxyServer,
         influx_writer: GenericWriter[OPCDataChangeMessage, Any],
         frontend_messaging_writer: GenericWriter[FrontendMessage, Any],
     ):
         self._config = config
-        self._backend_server = backend_server
+        self._centrifugo_proxy_server = centrifugo_proxy_server
         self._frontend_messaging_writer = frontend_messaging_writer
         self._influx_writer = influx_writer
         self._status = LinkStatus.Down
@@ -65,11 +65,12 @@ class OPCUAClient:
 
     def set_status(self, status: LinkStatus) -> None:
         if status != LinkStatus.Up:
-            self._backend_server.clear_last_opc_data()
-        self._backend_server.last_opc_status = status
+            self._centrifugo_proxy_server.clear_last_opc_data()
+        message = OPCStatusMessage(payload=status)
+        self._centrifugo_proxy_server.last_opc_status = message
         if status != self._status:
             self._status = status
-            self._frontend_messaging_writer.put(OPCStatusMessage(payload=status))
+            self._frontend_messaging_writer.put(message)
 
     def datachange_notification(  # noqa: U100
         self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
@@ -78,7 +79,7 @@ class OPCUAClient:
         logging.debug("datachange_notification for %s %s", node_id, val)
         self.set_status(LinkStatus.Up)
         message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
-        self._backend_server.record_last_opc_data(message)
+        self._centrifugo_proxy_server.record_last_opc_data(message)
         self._frontend_messaging_writer.put(message)
         if node_id in self._config.record_nodes:
             self._influx_writer.put(message)

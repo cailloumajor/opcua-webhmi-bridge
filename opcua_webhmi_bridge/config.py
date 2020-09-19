@@ -28,8 +28,12 @@ class CentrifugoSettings(BaseSettings):
     api_url: AnyHttpUrl = Field(
         "http://localhost:8000/api", help="URL of Centrifugo HTTP api"
     )
-    backend_host: str = Field("0.0.0.0", help="Host for backend server to listen on")
-    backend_port: PositiveInt = Field(8008, help="Port for backend server to listen on")
+    proxy_host: str = Field(
+        "0.0.0.0", help="Host for Centrifugo proxy server to listen on"
+    )
+    proxy_port: PositiveInt = Field(
+        8008, help="Port for Centrifugo proxy server to listen on"
+    )
 
     class Config:
         env_prefix = "centrifugo_"
