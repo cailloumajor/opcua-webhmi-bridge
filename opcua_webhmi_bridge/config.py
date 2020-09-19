@@ -23,18 +23,9 @@ class ConfigError(ValueError):
     pass
 
 
-class InfluxSettings(BaseSettings):
-    db_name: str = Field(..., help="Name of the InfluxDB database to use")
-    host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
-    port: PositiveInt = Field(8086, help="Port on which InfluxDB server is reachable")
-
-    class Config:
-        env_prefix = "influx_"
-
-
-class MessagingSettings(BaseSettings):
+class CentrifugoSettings(BaseSettings):
     api_key: SecretStr = Field(..., help="Centrifugo API key")
-    secret_key: SecretStr = Field(..., help="Centrifugo secret key")
+    token_hmac_secret_key: SecretStr = Field(..., help="Centrifugo secret key")
     api_url: AnyHttpUrl = Field(
         "http://localhost:8000/api", help="URL of Centrifugo HTTP api"
     )
@@ -42,7 +33,16 @@ class MessagingSettings(BaseSettings):
     backend_port: PositiveInt = Field(8008, help="Port for backend server to listen on")
 
     class Config:
-        env_prefix = "messaging_"
+        env_prefix = "centrifugo_"
+
+
+class InfluxSettings(BaseSettings):
+    db_name: str = Field(..., help="Name of the InfluxDB database to use")
+    host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
+    port: PositiveInt = Field(8086, help="Port on which InfluxDB server is reachable")
+
+    class Config:
+        env_prefix = "influx_"
 
 
 class OPCSettings(BaseSettings):
@@ -63,8 +63,8 @@ class OPCSettings(BaseSettings):
 
 @dataclasses.dataclass
 class Settings:
+    centrifugo: CentrifugoSettings
     influx: InfluxSettings
-    messaging: MessagingSettings
     opc: OPCSettings
 
     def __init__(self) -> None:

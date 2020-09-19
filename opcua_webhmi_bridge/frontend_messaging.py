@@ -6,7 +6,7 @@ import jwt
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from ._utils import GenericWriter
-from .config import MessagingSettings
+from .config import CentrifugoSettings
 from .messages import (
     DataChangePayload,
     FrontendMessage,
@@ -16,7 +16,7 @@ from .messages import (
 )
 
 
-class FrontendMessagingWriter(GenericWriter[FrontendMessage, MessagingSettings]):
+class FrontendMessagingWriter(GenericWriter[FrontendMessage, CentrifugoSettings]):
     purpose = "Frontend messaging"
 
     async def _task(self) -> None:
@@ -48,7 +48,7 @@ class FrontendMessagingWriter(GenericWriter[FrontendMessage, MessagingSettings])
 
 
 class BackendServer:
-    def __init__(self, config: MessagingSettings) -> None:
+    def __init__(self, config: CentrifugoSettings) -> None:
         self._config = config
         self._last_opc_data: Dict[str, DataChangePayload] = {}
         self.last_opc_status: LinkStatus = LinkStatus.Down
@@ -60,7 +60,9 @@ class BackendServer:
         self._last_opc_data[message.node_id] = message.payload
 
     async def hello(self, request: web.Request) -> web.Response:  # noqa: U100
-        token = jwt.encode({"sub": ""}, self._config.secret_key.get_secret_value())
+        token = jwt.encode(
+            {"sub": ""}, self._config.token_hmac_secret_key.get_secret_value()
+        )
         last_opc_data = [
             {"node_id": k, "payload": v} for k, v in self._last_opc_data.items()
         ]

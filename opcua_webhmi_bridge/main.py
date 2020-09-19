@@ -103,8 +103,8 @@ def main(
         )
     loop.set_exception_handler(handle_exception)
 
-    backend_server = BackendServer(env_settings.messaging)
-    frontend_messaging_writer = FrontendMessagingWriter(env_settings.messaging)
+    backend_server = BackendServer(env_settings.centrifugo)
+    frontend_messaging_writer = FrontendMessagingWriter(env_settings.centrifugo)
     influx_writer = InfluxDBWriter(env_settings.influx)
     opc_client = OPCUAClient(
         env_settings.opc, backend_server, influx_writer, frontend_messaging_writer
