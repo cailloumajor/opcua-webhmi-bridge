@@ -71,7 +71,7 @@ class Settings:
     opc: OPCSettings
 
     def __init__(self) -> None:
-        env_file = Path(__file__).parent / "../.env"
+        env_file = Path(__file__).parent / ".." / ".env"
         try:
             for field in dataclasses.fields(self):
                 setattr(self, field.name, field.type(env_file))
