@@ -53,7 +53,7 @@ class CentrifugoProxyServer:
         self._config = config
         self._messaging_writer = messaging_writer
         self._last_opc_data: Dict[str, OPCDataChangeMessage] = {}
-        self.last_opc_status: OPCStatusMessage = OPCStatusMessage(LinkStatus.Down)
+        self.last_opc_status = OPCStatusMessage(LinkStatus.Down)
 
     def clear_last_opc_data(self) -> None:
         self._last_opc_data = {}
