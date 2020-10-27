@@ -1,65 +1,22 @@
-#-------------------------------------------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
-#-------------------------------------------------------------------------------------------------------------
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.145.1/containers/python-3/.devcontainer/base.Dockerfile
 
-FROM python:3.8
+# [Choice] Python version: 3, 3.9, 3.8, 3.7, 3.6
+ARG VARIANT="3"
+FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 
-# If you would prefer to have multiple Python versions in your container,
-# replace the FROM statement above with the following:
-#
-# FROM ubuntu:bionic
-# ARG PYTHON_PACKAGES="python3.5 python3.6 python3.7 python3.8 python3 python3-pip python3-venv"
-# RUN apt-get update && apt-get install --no-install-recommends -yq software-properties-common \
-#     && add-apt-repository ppa:deadsnakes/ppa && apt-get update \
-#     && apt-get install -yq --no-install-recommends ${PYTHON_PACKAGES} \
-#     && pip3 install --no-cache-dir --upgrade pip setuptools wheel
+# [Option] Install Node.js
+ARG INSTALL_NODE="true"
+ARG NODE_VERSION="lts/*"
+RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "source /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
 
-# This Dockerfile adds a non-root user with sudo access. Use the "remoteUser"
-# property in devcontainer.json to use it. On Linux, the container user's GID/UIDs
-# will be updated to match your local UID/GID (when using the dockerFile property).
-# See https://aka.ms/vscode-remote/containers/non-root-user for details.
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-# Uncomment the following COPY line and the corresponding lines in the `RUN` command if you wish to
-# include your requirements in the image itself. Only do this if your requirements rarely change.
+# [Optional] If your pip requirements rarely change, uncomment this section to add them to the image.
 # COPY requirements.txt /tmp/pip-tmp/
+# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
+#    && rm -rf /tmp/pip-tmp
 
-# Set to false to skip installing zsh and Oh My ZSH!
-ARG INSTALL_ZSH="false"
+# [Optional] Uncomment this section to install additional OS packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>
 
-# Location and expected SHA for common setup script - SHA generated on release
-ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/v0.112.0/script-library/common-debian.sh"
-ARG COMMON_SCRIPT_SHA="28e3d552a08e0d82935ad7335837f354809bec9856a3e0c2855f17bfe3a19523"
-
-# Configure apt and install packages
-RUN apt-get update \
-    && apt-get -y install --no-install-recommends apt-utils dialog wget ca-certificates 2>&1 \
-    #
-    # Verify git, common tools / libs installed, add/modify non-root user, optionally install zsh
-    && wget -q -O /tmp/common-setup.sh "$COMMON_SCRIPT_SOURCE" \
-    && if [ "$COMMON_SCRIPT_SHA" != "dev-mode" ]; then echo "$COMMON_SCRIPT_SHA /tmp/common-setup.sh" | sha256sum -c - ; fi \
-    && /bin/bash /tmp/common-setup.sh "$INSTALL_ZSH" "$USERNAME" "$USER_UID" "$USER_GID" \
-    && rm /tmp/common-setup.sh \
-    #
-    # Tactically remove imagemagick due to https://security-tracker.debian.org/tracker/CVE-2019-10131
-    # Can leave in Dockerfile once upstream base image moves to > 7.0.7-28.
-    && apt-get purge -y imagemagick imagemagick-6-common \
-    #
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-
-USER $USERNAME
-
-ARG POETRY_INSTALLER_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -sSL $POETRY_INSTALLER_URL | python - --version=1.0.10 \
-    && curl https://pre-commit.com/install-local.py | python -
-
-ENV PATH="/home/$USERNAME/.poetry/bin:/home/$USERNAME/bin:$PATH" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true
+# [Optional] Uncomment this line to install global node packages.
+# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
