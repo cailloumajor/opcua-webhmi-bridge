@@ -19,8 +19,7 @@
     "python.linting.pylintPath": "${workspaceFolder}/.venv/bin/pylint",
     "python.pythonPath": ".venv/bin/python",
     "python.sortImports.args": [
-        "--settings-path=${workspaceFolder}",
-        "--virtual-env=${workspaceFolder}/.venv"
+        "--settings-path=${workspaceFolder}"
     ],
     "python.sortImports.path": "${workspaceFolder}/.venv/bin/isort",
     "python.testing.pytestEnabled": true,
