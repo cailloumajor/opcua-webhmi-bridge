@@ -1,4 +1,6 @@
 import dataclasses
+import re
+from json import JSONDecodeError
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple, cast
 
@@ -11,6 +13,7 @@ from pydantic import (
     SecretStr,
     stricturl,
 )
+from pydantic.env_settings import SettingsError
 from pydantic.error_wrappers import ValidationError
 
 if TYPE_CHECKING:
@@ -20,7 +23,10 @@ else:
 
 
 class ConfigError(ValueError):
-    pass
+    def __init__(self, field: str, error: str) -> None:
+        super().__init__(f"{field.upper()} environment variable: {error}")
+        self.field = field
+        self.error = error
 
 
 class CentrifugoSettings(BaseSettings):
@@ -78,10 +84,19 @@ class Settings:
         except ValidationError as err:
             first_error = err.errors()[0]
             settings_model = cast(BaseSettings, err.model)
-            env_var = settings_model.Config.env_prefix
-            env_var += first_error["loc"][0]
-            env_var = env_var.upper()
-            raise ConfigError(f"{env_var} environment variable: {first_error['msg']}")
+            config_field = settings_model.Config.env_prefix
+            config_field += first_error["loc"][0]
+            raise ConfigError(config_field, first_error["msg"])
+        except SettingsError as err:
+            config_field = "!-UNKNOWN-!"
+            error_msg = str(err)
+            cause = err.__cause__
+            if isinstance(cause, JSONDecodeError):
+                match = re.search(r'"(\w+)"$', error_msg)
+                if match:
+                    config_field = match[1]
+                error_msg = f"JSON decoding error (`{cause}`)"
+            raise ConfigError(config_field, error_msg)
 
     @classmethod
     def help(cls) -> List[Tuple[str, str]]:
