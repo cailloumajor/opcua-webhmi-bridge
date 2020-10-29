@@ -13,13 +13,13 @@ class EnvArg(NamedTuple):
 
 
 COMMAND = "opcua-agent"
-MANDATORY_ENV_ARGS = {
+MANDATORY_ENV_ARGS = [
     EnvArg("CENTRIFUGO_API_KEY", "key"),
     EnvArg("INFLUX_DB_NAME", "db"),
     EnvArg("OPC_SERVER_URL", "opc.tcp://127.0.0.1:4840"),
     EnvArg("OPC_MONITOR_NODES", '["node1", "node2"]'),
     EnvArg("OPC_RECORD_NODES", '["node3", "node4"]'),
-}
+]
 
 
 @pytest.fixture
