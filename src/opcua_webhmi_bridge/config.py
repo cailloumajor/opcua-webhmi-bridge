@@ -2,7 +2,7 @@ import dataclasses
 import re
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple, cast
+from typing import TYPE_CHECKING, List, Optional, Tuple, cast
 
 from pydantic import (
     AnyHttpUrl,
@@ -76,8 +76,7 @@ class Settings:
     influx: InfluxSettings
     opc: OPCSettings
 
-    def __init__(self) -> None:
-        env_file = Path(__file__).parent / ".." / ".env"
+    def __init__(self, env_file: Optional[Path] = None) -> None:
         try:
             for field in dataclasses.fields(self):
                 setattr(self, field.name, field.type(env_file))

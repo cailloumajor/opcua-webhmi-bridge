@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import click
@@ -57,17 +58,17 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
     asyncio.create_task(shutdown(loop))
 
 
-print_config_option = typer.Option(
-    False, "--config", help="Print configuration object and exit",
-)
-verbose_option = typer.Option(
-    False, "--verbose", "-v", help="Be more verbose (print debug informations)"
-)
-
-
 @app.command(cls=EnvVarsEpilogCommand)
 def main(
-    print_config: bool = print_config_option, verbose: bool = verbose_option,
+    env_file: Optional[Path] = typer.Option(  # noqa: B008
+        None, help="Path of a file containing configuration environment variables"
+    ),
+    print_config: bool = typer.Option(  # noqa: B008
+        False, "--config", help="Print configuration object and exit",
+    ),
+    verbose: bool = typer.Option(  # noqa: B008
+        False, "--verbose", "-v", help="Be more verbose (print debug informations)"
+    ),
 ) -> None:
     """Bridge between OPC-UA server and web-based HMI."""
 
@@ -83,7 +84,7 @@ def main(
             logging.getLogger(logger).setLevel(logging.ERROR)
 
     try:
-        env_settings = Settings()
+        env_settings = Settings(env_file)
     except ConfigError as err:
         logging.critical(err)
         logging.info("See `--help` option for more informations")
