@@ -270,7 +270,7 @@ flake8 = "*"
 
 [[package]]
 name = "flake8-unused-arguments"
-version = "0.0.3"
+version = "0.0.6"
 description = "flake8 extension to warn on unused function arguments"
 category = "dev"
 optional = false
@@ -671,7 +671,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "945f71fc69a9e7b66b779921095a2c5433657ab8ab3e1163aa30bc0df7e0cbb6"
+content-hash = "5e52605ad707a0c9805fa26885758daeb7fdabf114358d2863cb9fe0714e722d"
 
 [metadata.files]
 aiofiles = [
@@ -849,7 +849,8 @@ flake8-polyfill = [
     {file = "flake8_polyfill-1.0.2-py2.py3-none-any.whl", hash = "sha256:12be6a34ee3ab795b19ca73505e7b55826d5f6ad7230d31b18e106400169b9e9"},
 ]
 flake8-unused-arguments = [
-    {file = "flake8-unused-arguments-0.0.3.tar.gz", hash = "sha256:d98a924ebb1d710e4245adc2731d417662395c18232c45bee74a767f7dde7a30"},
+    {file = "flake8-unused-arguments-0.0.6.tar.gz", hash = "sha256:1134b19e9be5b8a608b5097f65ab81b2d029509e4dbf1c093ecc5d449fbba0cc"},
+    {file = "flake8_unused_arguments-0.0.6-py3-none-any.whl", hash = "sha256:5e71dac90cdf3476aabe5d56f791957ce4e075cbda9b10f94c3000168b5f637c"},
 ]
 gitdb = [
     {file = "gitdb-4.0.5-py3-none-any.whl", hash = "sha256:91f36bfb1ab7949b3b40e23736db18231bf7593edada2ba5c3a174a7b23657ac"},
