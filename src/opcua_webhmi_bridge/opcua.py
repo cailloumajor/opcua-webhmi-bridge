@@ -1,21 +1,15 @@
 import asyncio
 import logging
-from typing import Any
 
 import asyncua
 import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
-from ._utils import GenericWriter
 from .config import OPCSettings
-from .frontend_messaging import CentrifugoProxyServer
-from .messages import (
-    FrontendMessage,
-    LinkStatus,
-    OPCDataChangeMessage,
-    OPCStatusMessage,
-)
+from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
+from .influxdb import InfluxDBWriter
+from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
@@ -25,8 +19,8 @@ class OPCUAClient:
         self,
         config: OPCSettings,
         centrifugo_proxy_server: CentrifugoProxyServer,
-        influx_writer: GenericWriter[OPCDataChangeMessage, Any],
-        frontend_messaging_writer: GenericWriter[FrontendMessage, Any],
+        influx_writer: InfluxDBWriter,
+        frontend_messaging_writer: FrontendMessagingWriter,
     ):
         self._config = config
         self._centrifugo_proxy_server = centrifugo_proxy_server
