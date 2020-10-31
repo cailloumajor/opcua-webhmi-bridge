@@ -19,7 +19,7 @@ from pydantic.error_wrappers import ValidationError
 if TYPE_CHECKING:
     OpcUrl = AnyUrl
 else:
-    OpcUrl = stricturl(tld_required=False, allowed_schemes={"opc.tcp"},)
+    OpcUrl = stricturl(tld_required=False, allowed_schemes={"opc.tcp"})
 
 
 class ConfigError(ValueError):

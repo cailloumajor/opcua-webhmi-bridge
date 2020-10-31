@@ -66,8 +66,11 @@ class OPCUAClient:
             self._status = status
             self._frontend_messaging_writer.put(message)
 
-    def datachange_notification(  # noqa: U100
-        self, node: asyncua.Node, val: ua.ExtensionObject, data: SubscriptionItemData
+    def datachange_notification(
+        self,
+        node: asyncua.Node,
+        val: ua.ExtensionObject,
+        data: SubscriptionItemData,  # noqa: U100
     ) -> None:
         node_id = node.nodeid.Identifier
         logging.debug("datachange_notification for %s %s", node_id, val)

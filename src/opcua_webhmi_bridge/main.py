@@ -17,8 +17,10 @@ app = typer.Typer(add_completion=False)
 
 
 class EnvVarsEpilogCommand(typer.core.TyperCommand):
-    def format_epilog(  # noqa: U100
-        self, ctx: click.Context, formatter: click.HelpFormatter
+    def format_epilog(
+        self,
+        ctx: click.Context,  # noqa: U100
+        formatter: click.HelpFormatter,
     ) -> None:
         """Writes each line of the epilog, thus preserving newlines."""
         with formatter.section("Environment variables"):
@@ -64,7 +66,7 @@ def main(
         None, help="Path of a file containing configuration environment variables"
     ),
     print_config: bool = typer.Option(  # noqa: B008
-        False, "--config", help="Print configuration object and exit",
+        False, "--config", help="Print configuration object and exit"
     ),
     verbose: bool = typer.Option(  # noqa: B008
         False, "--verbose", "-v", help="Be more verbose (print debug informations)"
