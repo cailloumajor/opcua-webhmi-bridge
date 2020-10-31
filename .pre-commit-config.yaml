@@ -41,5 +41,4 @@ repos:
       - id: mypy
         additional_dependencies:
           - pydantic==1.7.1
-          - tenacity==6.2.0
           - typer==0.3.2

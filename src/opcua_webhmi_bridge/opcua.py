@@ -83,16 +83,16 @@ class OPCUAClient:
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         self.set_status(LinkStatus.Down)
-        exc = retry_state.outcome.exception()  # type: ignore
+        exc = retry_state.outcome.exception()
         logging.info(
             "Retrying OPC client task in %s seconds as it raised %s: %s",
-            retry_state.next_action.sleep,  # type: ignore
+            retry_state.next_action.sleep,
             type(exc).__name__,
             exc,
         )
 
     async def retrying_task(self) -> None:
-        retryer = tenacity.AsyncRetrying(  # type: ignore
+        retryer = tenacity.AsyncRetrying(
             wait=tenacity.wait_fixed(self._config.retry_delay),
             retry=(
                 tenacity.retry_if_exception_type(OSError)
