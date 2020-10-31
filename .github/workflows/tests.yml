@@ -2,8 +2,6 @@ name: Tests and code coverage
 
 env:
   PYTHON_VERSION: "3.8"
-  POETRY_INSTALLER_URL: https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
-  POETRY_VIRTUALENVS_IN_PROJECT: "true"
 
 on:
   push:
@@ -28,7 +26,9 @@ jobs:
         restore-keys: poetry-
     - name: Install Poetry
       run: |
-        curl -sSL $POETRY_INSTALLER_URL | python - --yes
+        source poetry_install_vars.sh
+        curl -sSL -o get-poetry.py "$POETRY_URL"
+        python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: poetry install --no-interaction
