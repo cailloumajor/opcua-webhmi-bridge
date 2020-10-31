@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     PositiveInt,
     SecretStr,
+    conint,
     stricturl,
 )
 from pydantic.env_settings import SettingsError
@@ -18,8 +19,10 @@ from pydantic.error_wrappers import ValidationError
 
 if TYPE_CHECKING:
     OpcUrl = AnyUrl
+    PortField = int
 else:
     OpcUrl = stricturl(tld_required=False, allowed_schemes={"opc.tcp"})
+    PortField = conint(gt=0, le=2 ** 16)
 
 
 class ConfigError(ValueError):
@@ -37,7 +40,7 @@ class CentrifugoSettings(BaseSettings):
     proxy_host: str = Field(
         "0.0.0.0", help="Host for Centrifugo proxy server to listen on"
     )
-    proxy_port: PositiveInt = Field(
+    proxy_port: PortField = Field(
         8008, help="Port for Centrifugo proxy server to listen on"
     )
 
@@ -48,7 +51,7 @@ class CentrifugoSettings(BaseSettings):
 class InfluxSettings(BaseSettings):
     db_name: str = Field(..., help="Name of the InfluxDB database to use")
     host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
-    port: PositiveInt = Field(8086, help="Port on which InfluxDB server is reachable")
+    port: PortField = Field(8086, help="Port on which InfluxDB server is reachable")
 
     class Config:
         env_prefix = "influx_"

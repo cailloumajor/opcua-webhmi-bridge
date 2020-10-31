@@ -56,8 +56,10 @@ def test_missing_mandatory_arg(monkeypatch, set_vars, arg_to_remove):
     [
         EnvArg("CENTRIFUGO_API_URL", "example.com:1234"),
         EnvArg("CENTRIFUGO_PROXY_PORT", "0"),
+        EnvArg("CENTRIFUGO_PROXY_PORT", "65537"),
         EnvArg("CENTRIFUGO_PROXY_PORT", "port"),
         EnvArg("INFLUX_PORT", "0"),
+        EnvArg("INFLUX_PORT", "65537"),
         EnvArg("INFLUX_PORT", "port"),
         EnvArg("OPC_SERVER_URL", "http://example.com:1234"),
         EnvArg("OPC_MONITOR_NODES", '"not_an_iterable"'),
