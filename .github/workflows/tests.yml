@@ -32,6 +32,12 @@ jobs:
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: poetry install --no-interaction
+    - name: Set up mypy cache
+      uses: actions/cache@v2
+      with:
+        path: .mypy_cache
+        key: mypy-${{ hashFiles('src/opcua_webhmi_bridge/**/*.py') }}
+        restore-keys: mypy-
     - name: Check static typing of the main package
       run: poetry run mypy src/opcua_webhmi_bridge
     - name: Test with pytest
