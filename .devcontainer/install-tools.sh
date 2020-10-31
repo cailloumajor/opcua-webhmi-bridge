@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC1091
+source poetry_install_vars.sh
+
 pipx_tools=(
-    "poetry==1.0.10"
+    "poetry==$POETRY_VERSION"
     "pre-commit"
 )
 

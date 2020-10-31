@@ -4,8 +4,11 @@ ENV PYTHONUNBUFFERED 1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG POETRY_URL=https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
-RUN curl -sSL $POETRY_URL | python - --version=1.0.10
+COPY poetry_install_vars.sh /usr/local/lib
+# hadolint ignore=SC1091
+RUN source /usr/local/lib/poetry_install_vars.sh \
+    && curl -sSL -o get-poetry.py "$POETRY_URL" \
+    && python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
 
 WORKDIR /app
 
