@@ -21,7 +21,7 @@ jobs:
     - name: Set up Poetry cache for Python dependencies
       uses: actions/cache@v2
       with:
-        path: ~/.cache/pypoetry
+        path: ~/.cache/pypoetry/cache
         key: poetry-${{ hashFiles('**/poetry.lock') }}
         restore-keys: poetry-
     - name: Install Poetry
