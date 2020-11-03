@@ -76,6 +76,11 @@ class CentrifugoProxyServer:
         app.router.add_post("/centrifugo/subscribe", self.centrifugo_subscribe)
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, self._config.proxy_host, self._config.proxy_port)
-        await site.start()
-        logging.info("Centrifugo proxy server started")
+        try:
+            site = web.TCPSite(runner, self._config.proxy_host, self._config.proxy_port)
+            await site.start()
+            logging.info("Centrifugo proxy server started")
+            while True:
+                await asyncio.sleep(3600)
+        finally:
+            await runner.cleanup()
