@@ -20,6 +20,7 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
     purpose = "Frontend messaging publisher"
 
     def __init__(self, config: CentrifugoSettings):
+        super().__init__()
         self._config = config
 
     async def task(self) -> None:

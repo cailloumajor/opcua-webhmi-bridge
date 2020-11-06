@@ -118,10 +118,13 @@ def main(
         frontend_messaging_writer,
     )
 
-    centrifugo_proxy_server.run()
-    frontend_messaging_writer.run()
-    influx_writer.run()
-    opc_client.run()
+    for task in [
+        frontend_messaging_writer,
+        centrifugo_proxy_server,
+        influx_writer,
+        opc_client,
+    ]:
+        task.run(loop)
 
     try:
         loop.run_forever()

@@ -71,6 +71,7 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
     purpose = "InfluxDB writer"
 
     def __init__(self, config: InfluxSettings):
+        super().__init__()
         self._config = config
 
     async def task(self) -> None:

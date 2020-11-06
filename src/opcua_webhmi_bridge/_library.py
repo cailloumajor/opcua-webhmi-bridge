@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from asyncio.events import AbstractEventLoop
 from typing import Generic, TypeVar
 
 from .messages import BaseMessage
@@ -20,13 +21,14 @@ class AsyncTask(ABC):
     async def task(self) -> None:
         raise NotImplementedError
 
-    def run(self) -> None:
+    def run(self, loop: AbstractEventLoop) -> None:
         logging.info("%s task running", self.purpose)
-        asyncio.create_task(self.task(), name=self.purpose)
+        loop.create_task(self.task(), name=self.purpose)
 
 
 class MessageConsumer(AsyncTask, Generic[MT]):
-    _queue: asyncio.Queue[MT]
+    def __init__(self) -> None:
+        self._queue: asyncio.Queue[MT] = asyncio.Queue(maxsize=QUEUE_MAXSIZE)
 
     def put(self, message: MT) -> None:
         try:
