@@ -6,6 +6,7 @@ import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 
+from ._library import AsyncTask
 from .config import OPCSettings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
@@ -14,7 +15,9 @@ from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
-class OPCUAClient:
+class OPCUAClient(AsyncTask):
+    purpose = "OPC-UA client"
+
     def __init__(
         self,
         config: OPCSettings,
@@ -91,7 +94,7 @@ class OPCUAClient:
             exc,
         )
 
-    async def retrying_task(self) -> None:
+    async def task(self) -> None:
         retryer = tenacity.AsyncRetrying(
             wait=tenacity.wait_fixed(self._config.retry_delay),
             retry=(

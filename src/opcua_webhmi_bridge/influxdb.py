@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
 from aiohttp import ClientError, ClientTimeout
 
-from ._utils import GenericWriter
+from ._library import MessageConsumer
 from .config import InfluxSettings
 from .messages import OPCDataChangeMessage
 
@@ -67,10 +67,13 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
         }
 
 
-class InfluxDBWriter(GenericWriter[OPCDataChangeMessage, InfluxSettings]):
-    purpose = "InfluxDB"
+class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
+    purpose = "InfluxDB writer"
 
-    async def _task(self) -> None:
+    def __init__(self, config: InfluxSettings):
+        self._config = config
+
+    async def task(self) -> None:
         async with InfluxDBClient(
             host=self._config.host,
             port=self._config.port,

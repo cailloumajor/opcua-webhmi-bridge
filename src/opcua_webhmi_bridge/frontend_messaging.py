@@ -1,31 +1,39 @@
 import asyncio
 import logging
-from typing import Dict
+from typing import Dict, Union
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
-from ._utils import GenericWriter
+from ._library import AsyncTask, MessageConsumer
 from .config import CentrifugoSettings
 from .messages import (
-    FrontendMessage,
     HeartBeatMessage,
     LinkStatus,
     OPCDataChangeMessage,
     OPCStatusMessage,
 )
 
+OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
-class FrontendMessagingWriter(GenericWriter[FrontendMessage, CentrifugoSettings]):
-    purpose = "Frontend messaging"
 
-    async def _task(self) -> None:
+class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
+    purpose = "Frontend messaging publisher"
+
+    def __init__(self, config: CentrifugoSettings):
+        self._config = config
+
+    async def task(self) -> None:
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
         async with ClientSession(
             headers=headers, raise_for_status=True, timeout=ClientTimeout(total=10)
         ) as session:
             while True:
-                message = await self._queue.get()
+                message: Union[OPCMessage, HeartBeatMessage]
+                try:
+                    message = await asyncio.wait_for(self._queue.get(), timeout=5)
+                except asyncio.TimeoutError:
+                    message = HeartBeatMessage()
                 command = {
                     "method": "publish",
                     "params": {
@@ -36,17 +44,12 @@ class FrontendMessagingWriter(GenericWriter[FrontendMessage, CentrifugoSettings]
                 try:
                     await session.post(self._config.api_url, json=command)
                 except ClientError as err:
-                    logging.error(
-                        "Frontend messaging %s error: %s", command["method"], err
-                    )
-
-    async def heartbeat_task(self) -> None:
-        while True:
-            await asyncio.sleep(5)
-            self.put(HeartBeatMessage())
+                    logging.error("Frontend messaging publish error: %s", err)
 
 
-class CentrifugoProxyServer:
+class CentrifugoProxyServer(AsyncTask):
+    purpose = "Centrifugo proxy server"
+
     def __init__(
         self, config: CentrifugoSettings, messaging_writer: FrontendMessagingWriter
     ) -> None:
@@ -71,7 +74,7 @@ class CentrifugoProxyServer:
             self._messaging_writer.put(self.last_opc_status)
         return web.json_response({"result": {}})
 
-    async def start(self) -> None:
+    async def task(self) -> None:
         app = web.Application()
         app.router.add_post("/centrifugo/subscribe", self.centrifugo_subscribe)
         runner = web.AppRunner(app)

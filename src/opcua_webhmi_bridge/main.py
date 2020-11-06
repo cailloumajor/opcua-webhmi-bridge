@@ -118,12 +118,12 @@ def main(
         frontend_messaging_writer,
     )
 
+    centrifugo_proxy_server.run()
+    frontend_messaging_writer.run()
+    influx_writer.run()
+    opc_client.run()
+
     try:
-        loop.create_task(centrifugo_proxy_server.start())
-        loop.create_task(frontend_messaging_writer.run_task())
-        loop.create_task(frontend_messaging_writer.heartbeat_task())
-        loop.create_task(influx_writer.run_task())
-        loop.create_task(opc_client.retrying_task())
         loop.run_forever()
     finally:
         loop.close()

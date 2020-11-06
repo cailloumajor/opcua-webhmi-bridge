@@ -51,6 +51,3 @@ class OPCStatusMessage(BaseMessage):
 class HeartBeatMessage(BaseMessage):
     message_type = "heartbeat"
     payload: None = None
-
-
-FrontendMessage = Union[OPCDataChangeMessage, OPCStatusMessage, HeartBeatMessage]
