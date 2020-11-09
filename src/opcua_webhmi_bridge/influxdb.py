@@ -7,13 +7,15 @@ from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
 
 from aiohttp import ClientError, ClientTimeout
 
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
+    from aioinflux import InfluxDBClient, InfluxDBError
+
 from ._library import MessageConsumer
 from .config import InfluxSettings
 from .messages import OPCDataChangeMessage
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=UserWarning)
-    from aioinflux import InfluxDBClient, InfluxDBError
+_logger = logging.getLogger(__name__)
 
 
 class InfluxPoint(TypedDict):
@@ -68,6 +70,7 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
 
 
 class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
+    logger = _logger
     purpose = "InfluxDB writer"
 
     def __init__(self, config: InfluxSettings):
@@ -86,4 +89,4 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
                 try:
                     await client.write(points)
                 except (ClientError, InfluxDBError) as err:
-                    logging.error("InfluxDB write error: %s", err)
+                    _logger.error("InfluxDB write error: %s", err)

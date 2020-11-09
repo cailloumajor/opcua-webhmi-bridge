@@ -13,6 +13,20 @@ from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
 from .opcua import OPCUAClient
 
+LOGGING_FILTERS = {
+    "asyncua.common.subscription": {
+        "levelno": logging.INFO,
+        "funcName": "publish_callback",
+    },
+    "asyncua.client.ua_client.UASocketProtocol": {
+        "levelno": logging.INFO,
+        "funcName": "open_secure_channel",
+    },
+}
+
+
+_logger = logging.getLogger(__name__)
+
 app = typer.Typer(add_completion=False)
 
 
@@ -32,19 +46,19 @@ async def shutdown(
 ) -> None:
     """Cleanup tasks tied to the service's shutdown"""
     if sig:
-        logging.info("Received exit signal %s", sig.name)
+        _logger.info("Received exit signal %s", sig.name)
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
 
     for task in tasks:
         task.cancel()
 
-    logging.info("Waiting for %s outstanding tasks to finish...", len(tasks))
+    _logger.info("Waiting for %s outstanding tasks to finish...", len(tasks))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
         if not isinstance(result, asyncio.CancelledError) and isinstance(
             result, Exception
         ):
-            logging.error("Exception occured during shutdown: %s", result)
+            _logger.error("Exception occured during shutdown: %s", result)
     loop.stop()
 
 
@@ -53,10 +67,10 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
     try:
         exc: Exception = context["exception"]
     except KeyError:
-        logging.error("Caught exception: %s", context["message"])
+        _logger.error("Caught exception: %s", context["message"])
     else:
-        logging.error("Caught exception %s: %s", exc.__class__.__name__, exc)
-    logging.info("Shutting down...")
+        _logger.error("Caught exception %s: %s", exc.__class__.__name__, exc)
+    _logger.info("Shutting down...")
     asyncio.create_task(shutdown(loop))
 
 
@@ -75,21 +89,24 @@ def main(
     """Bridge between OPC-UA server and web-based HMI."""
 
     logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(name)s:%(message)s",
+        format="%(asctime)s - %(levelname)s - %(name)s : %(message)s",
         level=logging.DEBUG if verbose else logging.INFO,
     )
+
+    def logging_filter(record: logging.LogRecord) -> bool:
+        return not all(
+            getattr(record, attr, None) == value
+            for attr, value in LOGGING_FILTERS[record.name].items()
+        )
+
     if not verbose:
-        for logger in [
-            "asyncua.common.subscription",
-            "asyncua.client.ua_client.UASocketProtocol",
-        ]:
-            logging.getLogger(logger).setLevel(logging.ERROR)
+        for logger in LOGGING_FILTERS.keys():
+            logging.getLogger(logger).addFilter(logging_filter)
 
     try:
         env_settings = Settings(env_file)
     except ConfigError as err:
-        logging.critical(err)
-        logging.info("See `--help` option for more informations")
+        _logger.critical("%s. See `--help` option for more informations", err)
         sys.exit(2)
 
     if print_config:
@@ -130,4 +147,4 @@ def main(
         loop.run_forever()
     finally:
         loop.close()
-        logging.info("Shutdown successfull")
+        _logger.info("Shutdown successfull")

@@ -15,8 +15,11 @@ from .messages import (
 
 OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
+_logger = logging.getLogger(__name__)
+
 
 class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
+    logger = _logger
     purpose = "Frontend messaging publisher"
 
     def __init__(self, config: CentrifugoSettings):
@@ -45,10 +48,11 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                 try:
                     await session.post(self._config.api_url, json=command)
                 except ClientError as err:
-                    logging.error("Frontend messaging publish error: %s", err)
+                    _logger.error("Frontend messaging publish error: %s", err)
 
 
 class CentrifugoProxyServer(AsyncTask):
+    logger = _logger
     purpose = "Centrifugo proxy server"
 
     def __init__(
@@ -83,7 +87,7 @@ class CentrifugoProxyServer(AsyncTask):
         try:
             site = web.TCPSite(runner, self._config.proxy_host, self._config.proxy_port)
             await site.start()
-            logging.info("Centrifugo proxy server started")
+            _logger.info("Centrifugo proxy server started")
             while True:
                 await asyncio.sleep(3600)
         finally:

@@ -1,7 +1,7 @@
 import asyncio
-import logging
 from abc import ABC, abstractmethod
 from asyncio.events import AbstractEventLoop
+from logging import Logger
 from typing import Generic, TypeVar
 
 from .messages import BaseMessage
@@ -14,6 +14,11 @@ QUEUE_MAXSIZE = 10
 class AsyncTask(ABC):
     @property
     @abstractmethod
+    def logger(self) -> Logger:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def purpose(self) -> str:
         raise NotImplementedError
 
@@ -22,7 +27,7 @@ class AsyncTask(ABC):
         raise NotImplementedError
 
     def run(self, loop: AbstractEventLoop) -> None:
-        logging.info("%s task running", self.purpose)
+        self.logger.info("%s task running", self.purpose)
         loop.create_task(self.task(), name=self.purpose)
 
 
@@ -34,4 +39,4 @@ class MessageConsumer(AsyncTask, Generic[MT]):
         try:
             self._queue.put_nowait(message)
         except asyncio.QueueFull:
-            logging.error("%s message queue full, message discarded", self.purpose)
+            self.logger.error("%s message queue full, message discarded", self.purpose)
