@@ -5,6 +5,7 @@ import asyncua
 import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
+from asyncua.ua.uaerrors import UaStatusCodeError
 
 from ._library import AsyncTask
 from .config import OPCSettings
@@ -14,8 +15,11 @@ from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
+_logger = logging.getLogger(__name__)
+
 
 class OPCUAClient(AsyncTask):
+    logger = _logger
     purpose = "OPC-UA client"
 
     def __init__(
@@ -50,9 +54,13 @@ class OPCUAClient(AsyncTask):
             subscription = await client.create_subscription(1000, self)
             sub_results = await subscription.subscribe_data_change(sub_nodes)
             for index, result in enumerate(sub_results):
-                if isinstance(result, ua.StatusCode):
-                    logging.error("Error subscribing to node %s", sub_nodes[index])
-                    result.check()  # Raise the exception
+                try:
+                    result.check()
+                except AttributeError:  # subscription succeeded (result is an integer)
+                    pass
+                except UaStatusCodeError:  # subscription failed (result is asynua.ua.StatusCode)
+                    _logger.exception("Error subscribing to node %s", sub_nodes[index])
+                    raise
 
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
 
@@ -76,7 +84,7 @@ class OPCUAClient(AsyncTask):
         data: SubscriptionItemData,  # noqa: U100
     ) -> None:
         node_id = node.nodeid.Identifier
-        logging.debug("datachange_notification for %s %s", node_id, val)
+        _logger.debug("datachange_notification for %s %s", node_id, val)
         self.set_status(LinkStatus.Up)
         message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
         self._centrifugo_proxy_server.record_last_opc_data(message)
@@ -87,7 +95,7 @@ class OPCUAClient(AsyncTask):
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         self.set_status(LinkStatus.Down)
         exc = retry_state.outcome.exception()
-        logging.info(
+        _logger.info(
             "Retrying OPC client task in %s seconds as it raised %s: %s",
             retry_state.next_action.sleep,
             type(exc).__name__,
