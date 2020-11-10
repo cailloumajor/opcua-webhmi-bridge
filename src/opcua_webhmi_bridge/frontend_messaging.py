@@ -1,3 +1,5 @@
+"""Management of messaging changes to frontend application."""
+
 import asyncio
 import logging
 from typing import Dict, Union
@@ -19,14 +21,22 @@ _logger = logging.getLogger(__name__)
 
 
 class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
+    """Handles signalization to frontend."""
+
     logger = _logger
     purpose = "Frontend messaging publisher"
 
     def __init__(self, config: CentrifugoSettings):
+        """Initializes frontend signalization.
+
+        Args:
+            config: Centrifugo related configuration options.
+        """
         super().__init__()
         self._config = config
 
     async def task(self) -> None:
+        """Implements frontend signalization asynchronous task."""
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
         async with ClientSession(
@@ -52,24 +62,39 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
 
 
 class CentrifugoProxyServer(AsyncTask):
+    """Centrifugo HTTP proxy server."""
+
     logger = _logger
     purpose = "Centrifugo proxy server"
 
     def __init__(
         self, config: CentrifugoSettings, messaging_writer: FrontendMessagingWriter
     ) -> None:
+        """Initialize Centrifugo proxy server instance.
+
+        Args:
+            config: Centrifugo related configuration options.
+            messaging_writer: Instance of frontend signalization task.
+        """
         self._config = config
         self._messaging_writer = messaging_writer
         self._last_opc_data: Dict[str, OPCDataChangeMessage] = {}
         self.last_opc_status = OPCStatusMessage(LinkStatus.Down)
 
     def clear_last_opc_data(self) -> None:
+        """Clears the record of last OPC-UA data received."""
         self._last_opc_data = {}
 
     def record_last_opc_data(self, message: OPCDataChangeMessage) -> None:
+        """Records the last OPC-UA data received for each node ID.
+
+        Args:
+            message: The message to add to the record.
+        """
         self._last_opc_data[message.node_id] = message
 
     async def centrifugo_subscribe(self, request: web.Request) -> web.Response:
+        """Handle Centrifugo subscription requests."""
         context = await request.json()
         channel = context["channel"]
         if channel == OPCDataChangeMessage.message_type:
@@ -80,6 +105,7 @@ class CentrifugoProxyServer(AsyncTask):
         return web.json_response({"result": {}})
 
     async def task(self) -> None:
+        """Implements Centrifugo proxy asynchronous task."""
         app = web.Application()
         app.router.add_post("/centrifugo/subscribe", self.centrifugo_subscribe)
         runner = web.AppRunner(app)
