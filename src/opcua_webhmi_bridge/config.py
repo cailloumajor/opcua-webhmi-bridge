@@ -1,3 +1,5 @@
+"""Management of configuration from environment variables."""
+
 import dataclasses
 import re
 from json import JSONDecodeError
@@ -26,13 +28,23 @@ else:
 
 
 class ConfigError(ValueError):
+    """Configuration error exception."""
+
     def __init__(self, field: str, error: str) -> None:
+        """Initializes configuration error exception.
+
+        Args:
+            field: Configuration field the error is about.
+            error: A string describing the error.
+        """
         super().__init__(f"{field.upper()} environment variable: {error}")
         self.field = field
         self.error = error
 
 
 class CentrifugoSettings(BaseSettings):
+    """Centrifugo related configuration options."""
+
     api_key: SecretStr = Field(..., help="Centrifugo API key")
     api_url: AnyHttpUrl = Field(
         "http://localhost:8000/api", help="URL of Centrifugo HTTP api"
@@ -44,20 +56,24 @@ class CentrifugoSettings(BaseSettings):
         8008, help="Port for Centrifugo proxy server to listen on"
     )
 
-    class Config:
+    class Config:  # noqa: D106
         env_prefix = "centrifugo_"
 
 
 class InfluxSettings(BaseSettings):
+    """InfluxDB related configuration options."""
+
     db_name: str = Field(..., help="Name of the InfluxDB database to use")
     host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
     port: PortField = Field(8086, help="Port on which InfluxDB server is reachable")
 
-    class Config:
+    class Config:  # noqa: D106
         env_prefix = "influx_"
 
 
 class OPCSettings(BaseSettings):
+    """OPC-UA related configuration options."""
+
     server_url: OpcUrl = Field(..., help="URL of the OPC-UA server")
     monitor_nodes: List[str] = Field(
         ..., help="Array of node IDs to monitor without recording (JSON format)"
@@ -69,17 +85,27 @@ class OPCSettings(BaseSettings):
         5, help="Delay in seconds to retry OPC-UA connection"
     )
 
-    class Config:
+    class Config:  # noqa: D106
         env_prefix = "opc_"
 
 
 @dataclasses.dataclass
 class Settings:
+    """Globally manage environment variables configuration options."""
+
     centrifugo: CentrifugoSettings
     influx: InfluxSettings
     opc: OPCSettings
 
     def __init__(self, env_file: Optional[Path] = None) -> None:
+        """Checks the validity of each configuration option.
+
+        Args:
+            env_file: Path to a file defining environment variables.
+
+        Raises:
+            ConfigError: A configuration option is not valid.
+        """
         try:
             for field in dataclasses.fields(self):
                 setattr(self, field.name, field.type(env_file))
@@ -102,6 +128,12 @@ class Settings:
 
     @classmethod
     def help(cls) -> List[Tuple[str, str]]:
+        """Generate environment variables configuration options help text.
+
+        Returns:
+            A list of 2-tuples. Each tuple consists of the environment variable
+            and its descriptive text.
+        """
         env_vars_tuples: List[Tuple[str, str]] = []
         for field in dataclasses.fields(cls):
             for props in field.type.schema()["properties"].values():

@@ -1,3 +1,5 @@
+"""Management of data writing to InfluxDB."""
+
 from __future__ import annotations
 
 import logging
@@ -19,18 +21,23 @@ _logger = logging.getLogger(__name__)
 
 
 class InfluxPoint(TypedDict):
+    """Represents an InfluxDB data point.
+
+    Attributes are self-describing in InfluxDB context.
+    """
+
     measurement: str
     tags: Dict[str, str]
     fields: Dict[str, Union[None, bool, float, int, str]]
 
 
 def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten a JSON data structure"""
+    """Flattens a JSON data structure."""
 
     def unpack(
         parent_key: str, parent_value: Union[Dict[str, Any], List[Dict[str, Any]], Any]
     ) -> Iterator[Tuple[str, Any]]:
-        """Unpack one level of nesting in JSON data structure"""
+        """Unpacks one level of nesting in JSON data structure."""
         if isinstance(parent_value, dict):
             for key, value in parent_value.items():
                 yield f"{parent_key}.{key}", value
@@ -50,6 +57,7 @@ def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPoint]]:
+    """Converts OPC-UA data change message to InfluxDB data points(s)."""
     measurement = message.node_id.replace('"', "")
     if isinstance(message.payload, list):
         index_tag = measurement.split(".")[-1] + "_index"
@@ -70,14 +78,22 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
 
 
 class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
+    """Handles writing OPC-UA data to InfluxDB."""
+
     logger = _logger
     purpose = "InfluxDB writer"
 
     def __init__(self, config: InfluxSettings):
+        """Initializes InfluxDB writer task.
+
+        Args:
+            config: InfluxDB related configuration options.
+        """
         super().__init__()
         self._config = config
 
     async def task(self) -> None:
+        """Implements InfluxDB writer asynchronous task."""
         async with InfluxDBClient(
             host=self._config.host,
             port=self._config.port,

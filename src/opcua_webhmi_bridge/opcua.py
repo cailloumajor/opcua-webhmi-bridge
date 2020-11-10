@@ -1,3 +1,5 @@
+"""Management of OPC-UA client part."""
+
 import asyncio
 import logging
 
@@ -19,6 +21,8 @@ _logger = logging.getLogger(__name__)
 
 
 class OPCUAClient(AsyncTask):
+    """OPC-UA client task."""
+
     logger = _logger
     purpose = "OPC-UA client"
 
@@ -29,6 +33,14 @@ class OPCUAClient(AsyncTask):
         influx_writer: InfluxDBWriter,
         frontend_messaging_writer: FrontendMessagingWriter,
     ):
+        """Initializes OPC-UA client task.
+
+        Args:
+            config: OPC-UA related configuration options.
+            centrifugo_proxy_server: Centrifugo proxy server task instance.
+            influx_writer: InfluxDB writer task instance.
+            frontend_messaging_writer: Frontend messaging task instance.
+        """
         self._config = config
         self._centrifugo_proxy_server = centrifugo_proxy_server
         self._frontend_messaging_writer = frontend_messaging_writer
@@ -69,6 +81,11 @@ class OPCUAClient(AsyncTask):
                 await server_state.read_data_value()
 
     def set_status(self, status: LinkStatus) -> None:
+        """Sets the status of OPC-UA server link.
+
+        Args:
+            status: The OPC-UA server link status.
+        """
         if status != LinkStatus.Up:
             self._centrifugo_proxy_server.clear_last_opc_data()
         message = OPCStatusMessage(payload=status)
@@ -83,6 +100,7 @@ class OPCUAClient(AsyncTask):
         val: ua.ExtensionObject,
         data: SubscriptionItemData,  # noqa: U100
     ) -> None:
+        """OPC-UA data change handler. Implements subscription handler."""
         node_id = node.nodeid.Identifier
         _logger.debug("datachange_notification for %s %s", node_id, val)
         self.set_status(LinkStatus.Up)
@@ -93,6 +111,7 @@ class OPCUAClient(AsyncTask):
             self._influx_writer.put(message)
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
+        """Callback to be called before sleeping on each task retrying."""
         self.set_status(LinkStatus.Down)
         exc = retry_state.outcome.exception()
         _logger.info(
@@ -103,6 +122,7 @@ class OPCUAClient(AsyncTask):
         )
 
     async def task(self) -> None:
+        """Implements OPC-UA client asynchronous task."""
         retryer = tenacity.AsyncRetrying(
             wait=tenacity.wait_fixed(self._config.retry_delay),
             retry=(

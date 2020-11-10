@@ -1,3 +1,5 @@
+"""Application entrypoint module."""
+
 import asyncio
 import logging
 import signal
@@ -31,6 +33,8 @@ app = typer.Typer(add_completion=False)
 
 
 class EnvVarsEpilogCommand(typer.core.TyperCommand):
+    """Custom command class."""
+
     def format_epilog(
         self,
         ctx: click.Context,  # noqa: U100
@@ -44,7 +48,7 @@ class EnvVarsEpilogCommand(typer.core.TyperCommand):
 async def shutdown(
     loop: asyncio.AbstractEventLoop, sig: Optional[signal.Signals] = None
 ) -> None:
-    """Cleanup tasks tied to the service's shutdown"""
+    """Cleanups tasks tied to the service's shutdown."""
     if sig:
         _logger.info("Received exit signal %s", sig.name)
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
@@ -63,6 +67,7 @@ async def shutdown(
 
 
 def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
+    """Exception handler for event loop."""
     # context["message"] will always be there; but context["exception"] may not
     try:
         exc: Exception = context["exception"]
@@ -87,7 +92,6 @@ def main(
     ),
 ) -> None:
     """Bridge between OPC-UA server and web-based HMI."""
-
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s : %(message)s",
         level=logging.DEBUG if verbose else logging.INFO,
