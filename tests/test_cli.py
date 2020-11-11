@@ -1,5 +1,5 @@
 import re
-import subprocess  # nosec
+import subprocess
 from typing import NamedTuple
 
 import pytest
@@ -32,13 +32,13 @@ def set_vars(monkeypatch):
 
 
 def test_entrypoint():
-    completed = subprocess.run(f"{COMMAND} --help", shell=True)  # nosec
-    assert completed.returncode == 0  # nosec
+    completed = subprocess.run(f"{COMMAND} --help", shell=True)
+    assert completed.returncode == 0
 
 
 def test_all_mandatory_args(set_vars):
     set_vars(MANDATORY_ENV_ARGS)
-    assert Settings() is not None  # nosec
+    assert Settings() is not None
 
 
 @pytest.mark.parametrize(

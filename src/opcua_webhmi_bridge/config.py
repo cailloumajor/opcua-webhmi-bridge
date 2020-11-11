@@ -123,7 +123,7 @@ class Settings:
                 match = re.search(r'"(\w+)"$', error_msg)
                 # In this context (SettingsError from JSONDecodeError),
                 # match must not be None
-                assert match is not None  # nosec
+                assert match is not None  # noqa: S101
                 config_field = match[1]
                 error_msg = f"JSON decoding error (`{cause}`)"
             raise ConfigError(config_field, error_msg)
