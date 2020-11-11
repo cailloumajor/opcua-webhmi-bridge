@@ -121,8 +121,10 @@ class Settings:
             cause = err.__cause__
             if isinstance(cause, JSONDecodeError):
                 match = re.search(r'"(\w+)"$', error_msg)
-                if match:
-                    config_field = match[1]
+                # In this context (SettingsError from JSONDecodeError),
+                # match must not be None
+                assert match is not None  # nosec
+                config_field = match[1]
                 error_msg = f"JSON decoding error (`{cause}`)"
             raise ConfigError(config_field, error_msg)
 
