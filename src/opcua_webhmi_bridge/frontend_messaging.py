@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Dict, Union
 
-from aiohttp import ClientError, ClientSession, ClientTimeout, web
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout, web
 
 from ._library import AsyncTask, MessageConsumer
 from .config import CentrifugoSettings
@@ -14,6 +14,8 @@ from .messages import (
     OPCDataChangeMessage,
     OPCStatusMessage,
 )
+
+HEARTBEAT_TIMEOUT = 5
 
 OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
@@ -40,12 +42,14 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
         async with ClientSession(
-            headers=headers, raise_for_status=True, timeout=ClientTimeout(total=10)
+            headers=headers, timeout=ClientTimeout(total=10)
         ) as session:
             while True:
                 message: Union[OPCMessage, HeartBeatMessage]
                 try:
-                    message = await asyncio.wait_for(self._queue.get(), timeout=5)
+                    message = await asyncio.wait_for(
+                        self._queue.get(), timeout=HEARTBEAT_TIMEOUT
+                    )
                 except asyncio.TimeoutError:
                     message = HeartBeatMessage()
                 command = {
@@ -55,10 +59,24 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                         "data": message.frontend_data,
                     },
                 }
-                try:
-                    await session.post(self._config.api_url, json=command)
-                except ClientError as err:
-                    _logger.error("Frontend messaging publish error: %s", err)
+                async with session.post(self._config.api_url, json=command) as resp:
+                    try:
+                        resp.raise_for_status()
+                        resp_data = await resp.json()
+                        if (error := resp_data.get("error")) is not None:
+                            _logger.error(
+                                "%s - Centrifugo API error: %s %s",
+                                self.purpose,
+                                error["code"],
+                                error["message"],
+                            )
+                    except ClientResponseError as err:
+                        _logger.error(
+                            "%s - HTTP error: %s %s",
+                            self.purpose,
+                            err.status,
+                            err.message,  # noqa: B306
+                        )
 
 
 class CentrifugoProxyServer(AsyncTask):
