@@ -1,8 +1,9 @@
 import re
 import subprocess
-from typing import NamedTuple
+from typing import Callable, Iterable, NamedTuple
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
 from opcua_webhmi_bridge.config import ConfigError, Settings
 
@@ -22,29 +23,38 @@ MANDATORY_ENV_ARGS = [
 ]
 
 
+SetVarsType = Callable[[Iterable[EnvArg]], None]
+
+
+def arg_name(arg: EnvArg) -> str:
+    return arg.name
+
+
 @pytest.fixture
-def set_vars(monkeypatch):
-    def inner(vars):
+def set_vars(monkeypatch: MonkeyPatch) -> SetVarsType:
+    def inner(vars: Iterable[EnvArg]) -> None:
         for v in vars:
             monkeypatch.setenv(v.name, v.value)
 
     return inner
 
 
-def test_entrypoint():
+def test_entrypoint() -> None:
     completed = subprocess.run(f"{COMMAND} --help", shell=True)
     assert completed.returncode == 0
 
 
-def test_all_mandatory_args(set_vars):
+def test_all_mandatory_args(set_vars: SetVarsType) -> None:
     set_vars(MANDATORY_ENV_ARGS)
     assert Settings() is not None
 
 
-@pytest.mark.parametrize(
-    "arg_to_remove", list(MANDATORY_ENV_ARGS), ids=lambda arg: arg.name
-)
-def test_missing_mandatory_arg(monkeypatch, set_vars, arg_to_remove):
+@pytest.mark.parametrize("arg_to_remove", MANDATORY_ENV_ARGS, ids=arg_name)
+def test_missing_mandatory_arg(
+    monkeypatch: MonkeyPatch,
+    set_vars: SetVarsType,
+    arg_to_remove: EnvArg,
+) -> None:
     set_vars(MANDATORY_ENV_ARGS)
     monkeypatch.delenv(arg_to_remove.name)
     with pytest.raises(ConfigError, match=re.escape(arg_to_remove.name)):
@@ -68,9 +78,13 @@ def test_missing_mandatory_arg(monkeypatch, set_vars, arg_to_remove):
         EnvArg("OPC_RECORD_NODES", "invalid_json"),
         EnvArg("OPC_RETRY_DELAY", "-1"),
     ],
-    ids=lambda arg: arg.name,
+    ids=arg_name,
 )
-def test_bad_arg_type(monkeypatch, set_vars, bad_arg):
+def test_bad_arg_type(
+    monkeypatch: MonkeyPatch,
+    set_vars: SetVarsType,
+    bad_arg: EnvArg,
+) -> None:
     set_vars(MANDATORY_ENV_ARGS)
     monkeypatch.setenv(bad_arg.name, bad_arg.value)
     with pytest.raises(ConfigError, match=re.escape(bad_arg.name)):
