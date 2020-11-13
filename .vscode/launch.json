@@ -12,6 +12,14 @@
             "console": "integratedTerminal",
             "envFile": "",
             "justMyCode": false
+        },
+        {
+            "name": "Debug Tests",
+            "type": "python",
+            "request": "test",
+            "env": {
+              "PYTEST_ADDOPTS": "--no-cov"
+            }
         }
     ]
 }
