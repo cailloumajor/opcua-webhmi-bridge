@@ -9,7 +9,6 @@ from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.frontend_messaging import FrontendMessagingWriter
-from opcua_webhmi_bridge.messages import LinkStatus, OPCStatusMessage
 
 LogRecordsType = Callable[[], Iterator[logging.LogRecord]]
 
@@ -74,16 +73,20 @@ async def test_http_requests(
     httpserver: HTTPServer,
     log_records: LogRecordsType,
     messaging_writer: FrontendMessagingWriter,
+    mocker: MockerFixture,
 ) -> None:
 
     expected_headers = {"Authorization": "apikey api_key"}
-    message = OPCStatusMessage(LinkStatus.Up)
+    message = mocker.Mock(
+        message_type="test_message",
+        frontend_data={"payload": "test_payload"},
+    )
 
     # Step 1 expected request
     httpserver.expect_ordered_request(
         "/api",
         method="POST",
-        json=expected_data("opc_status", "UP"),
+        json=expected_data("test_message", "test_payload"),
         headers=expected_headers,
     ).respond_with_json({})
     # Step 2 expected request
