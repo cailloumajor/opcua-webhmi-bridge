@@ -5,11 +5,9 @@ from typing import Callable, Iterator, TypedDict, Union
 
 import pytest
 from _pytest.logging import LogCaptureFixture
-from _pytest.monkeypatch import MonkeyPatch
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
 
-from opcua_webhmi_bridge.config import CentrifugoSettings
 from opcua_webhmi_bridge.frontend_messaging import FrontendMessagingWriter
 from opcua_webhmi_bridge.messages import LinkStatus, OPCStatusMessage
 
@@ -55,19 +53,19 @@ def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
 
 @pytest.fixture
 def messaging_writer(
-    monkeypatch: MonkeyPatch,
     httpserver: HTTPServer,
+    mocker: MockerFixture,
 ) -> FrontendMessagingWriter:
-    monkeypatch.setenv("CENTRIFUGO_API_KEY", "api-key")
-    monkeypatch.setenv("CENTRIFUGO_API_URL", httpserver.url_for("/api"))
-    monkeypatch.setattr("opcua_webhmi_bridge.frontend_messaging.HEARTBEAT_TIMEOUT", 0.5)
-    messaging_writer = FrontendMessagingWriter(CentrifugoSettings())
-    return messaging_writer
+    mocker.patch("opcua_webhmi_bridge.frontend_messaging.HEARTBEAT_TIMEOUT", 0.5)
+    config = mocker.Mock(
+        api_url=httpserver.url_for("/api"),
+        **{"api_key.get_secret_value.return_value": "api-key"}
+    )
+    return FrontendMessagingWriter(config)
 
 
-def test_initializes_superclass(mocker: MockerFixture) -> None:
-    instance = FrontendMessagingWriter(config=mocker.Mock())
-    assert instance._queue.empty()
+def test_initializes_superclass(messaging_writer: FrontendMessagingWriter) -> None:
+    assert messaging_writer._queue.empty()
 
 
 @pytest.mark.asyncio
