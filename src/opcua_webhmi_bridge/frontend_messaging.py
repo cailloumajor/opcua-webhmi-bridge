@@ -5,7 +5,7 @@ import logging
 from json.decoder import JSONDecodeError
 from typing import Dict, Union
 
-from aiohttp import ClientResponseError, ClientSession, ClientTimeout, web
+from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from ._library import AsyncTask, MessageConsumer
 from .config import CentrifugoSettings
@@ -61,8 +61,8 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                         "data": message.frontend_data,
                     },
                 }
-                async with session.post(self._config.api_url, json=command) as resp:
-                    try:
+                try:
+                    async with session.post(self._config.api_url, json=command) as resp:
                         resp.raise_for_status()
                         resp_data = await resp.json()
                         if (error := resp_data.get("error")) is not None:
@@ -72,13 +72,8 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                                 error["code"],
                                 error["message"],
                             )
-                    except ClientResponseError as err:
-                        _logger.error(
-                            "%s - HTTP error: %s %s",
-                            self.purpose,
-                            err.status,
-                            err.message,  # noqa: B306
-                        )
+                except ClientError as err:
+                    _logger.error("%s error: %s", self.purpose, err)
 
 
 class CentrifugoProxyServer(AsyncTask):

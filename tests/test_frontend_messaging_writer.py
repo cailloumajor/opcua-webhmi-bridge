@@ -99,7 +99,7 @@ async def test_http_requests(
     # Step 3 expected request
     httpserver.expect_ordered_request(
         "/api", headers=expected_headers
-    ).respond_with_data(status=418)
+    ).respond_with_data(status=404)
     # Step 4 expected request
     httpserver.expect_ordered_request(
         "/api", headers=expected_headers
@@ -113,13 +113,13 @@ async def test_http_requests(
     # Step 2 - timeout waiting for message queue, heartbeat request
     await asyncio.sleep(0.5)
     httpserver.check_assertions()
-    # Step 3 - failing request (error 418)
+    # Step 3 - failing request (error 404)
     messaging_writer.put(message)
     await asyncio.sleep(0.1)
     httpserver.check_assertions()
     last_log_record = list(log_records())[-1]
     assert last_log_record.levelno == logging.ERROR
-    assert "HTTP error: 418 I'M A TEAPOT" in last_log_record.message
+    assert "404" in last_log_record.message
     # Step 4 - Centrifugo API error response
     messaging_writer.put(message)
     await asyncio.sleep(0.1)
