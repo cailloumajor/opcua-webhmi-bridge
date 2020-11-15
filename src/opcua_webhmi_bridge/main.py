@@ -69,13 +69,19 @@ async def shutdown(
 
 def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
     """Exception handler for event loop."""
-    # context["message"] will always be there; but context["exception"] may not
+    # context["message"] will always be there;
+    # but context["exception"] and context["future"] may not
     try:
         exc: Exception = context["exception"]
+        future: asyncio.Future[Any] = context["future"]
+        _logger.error(
+            "Caught exception `%s` in %s task: %s",
+            exc.__class__.__name__,
+            future.get_name() if isinstance(future, asyncio.Task) else "unknown",
+            exc,
+        )
     except KeyError:
         _logger.error("Caught exception: %s", context["message"])
-    else:
-        _logger.error("Caught exception %s: %s", exc.__class__.__name__, exc)
     _logger.info("Shutting down...")
     asyncio.create_task(shutdown(loop))
 
