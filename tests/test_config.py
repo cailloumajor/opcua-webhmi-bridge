@@ -81,3 +81,10 @@ def test_bad_arg_type(
     monkeypatch.setenv(bad_arg.name, bad_arg.value)
     with pytest.raises(ConfigError, match=re.escape(bad_arg.name)):
         Settings()
+
+
+def test_help(set_vars: SetVarsType) -> None:
+    set_vars(MANDATORY_ENV_ARGS)
+    mandatory_names = [n for n, _ in MANDATORY_ENV_ARGS]
+    for env_var, help_text in Settings.help():
+        assert (env_var in mandatory_names) != ("default:" in help_text)
