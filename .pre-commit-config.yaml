@@ -38,6 +38,7 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
+          - aiohttp==3.7.2
           - pydantic==1.7.1
           - pytest==6.1.2
           - pytest-mock==3.3.1

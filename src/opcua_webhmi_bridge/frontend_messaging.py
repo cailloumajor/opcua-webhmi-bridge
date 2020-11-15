@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from json.decoder import JSONDecodeError
 from typing import Dict, Union
 
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout, web
@@ -15,9 +16,10 @@ from .messages import (
     OPCStatusMessage,
 )
 
+OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
+
 HEARTBEAT_TIMEOUT = 5
 
-OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
 
 _logger = logging.getLogger(__name__)
 
@@ -113,13 +115,22 @@ class CentrifugoProxyServer(AsyncTask):
 
     async def centrifugo_subscribe(self, request: web.Request) -> web.Response:
         """Handle Centrifugo subscription requests."""
-        context = await request.json()
-        channel = context["channel"]
-        if channel == OPCDataChangeMessage.message_type:
+        try:
+            context = await request.json()
+            channel = context.get("channel")
+        except JSONDecodeError:
+            raise web.HTTPInternalServerError(reason="JSON decode error")
+        except AttributeError:
+            raise web.HTTPBadRequest(reason="Bad request format")
+        if channel is None:
+            raise web.HTTPBadRequest(reason="Missing channel field")
+        elif channel == OPCDataChangeMessage.message_type:
             for message in self._last_opc_data.values():
                 self._messaging_writer.put(message)
         elif channel == OPCStatusMessage.message_type:
             self._messaging_writer.put(self.last_opc_status)
+        else:
+            raise web.HTTPBadRequest(reason="Unknown channel")
         return web.json_response({"result": {}})
 
     async def task(self) -> None:
