@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 import click
 import typer
 
+from ._library import AsyncTask
 from .config import ConfigError, Settings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
@@ -139,6 +140,7 @@ def main(
         frontend_messaging_writer,
     )
 
+    task: AsyncTask
     for task in [
         frontend_messaging_writer,
         centrifugo_proxy_server,
