@@ -15,7 +15,7 @@ class OPCUAEncoder(json.JSONEncoder):
         """Extends standard library JSON encoder."""
         if hasattr(o, "ua_types"):
             return {elem: getattr(o, elem) for elem, _ in o.ua_types}
-        return super().default(o)
+        return super().default(o)  # pragma: no cover
 
 
 @dataclass
