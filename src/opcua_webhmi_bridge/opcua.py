@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Any
 
 import asyncua
 import tenacity
@@ -97,7 +98,7 @@ class OPCUAClient(AsyncTask):
     def datachange_notification(
         self,
         node: asyncua.Node,
-        val: ua.ExtensionObject,
+        val: Any,
         data: SubscriptionItemData,  # noqa: U100
     ) -> None:
         """OPC-UA data change handler. Implements subscription handler."""

@@ -5,8 +5,6 @@ import json
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Any, Dict, List, Union
 
-from asyncua.ua import ExtensionObject
-
 DataChangePayload = Union[List[Dict[str, Any]], Dict[str, Any]]
 
 
@@ -49,9 +47,9 @@ class OPCDataChangeMessage(BaseMessage):
     message_type = "opc_data_change"
     node_id: str
     payload: DataChangePayload = field(init=False)
-    ua_object: InitVar[ExtensionObject]
+    ua_object: InitVar[Any]
 
-    def __post_init__(self, ua_object: ExtensionObject) -> None:
+    def __post_init__(self, ua_object: Any) -> None:
         """Initializes payload field from raw OPC-UA data.
 
         Args:
