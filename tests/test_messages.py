@@ -4,7 +4,7 @@ from opcua_webhmi_bridge.messages import BaseMessage, OPCDataChangeMessage
 
 
 @dataclass
-class TestMessage(BaseMessage):
+class MessageForTesting(BaseMessage):
     message_type = "test_message"
     numeric_field: int
     text_field: str
@@ -33,7 +33,7 @@ class RootType:
 
 
 def test_message_frontend_data() -> None:
-    message = TestMessage(42, "test")
+    message = MessageForTesting(42, "test")
     assert message.frontend_data == {
         "numeric_field": 42,
         "text_field": "test",
