@@ -1,7 +1,8 @@
 import asyncio
 import contextlib
 import logging
-from typing import Callable, Iterator, TypedDict, Union
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Union
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -10,44 +11,20 @@ from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.frontend_messaging import FrontendMessagingWriter
 
-LogRecordsType = Callable[[], Iterator[logging.LogRecord]]
-
-
-class ParamsData(TypedDict):
-    payload: Union[str, None]
-
-
-class Params(TypedDict):
-    channel: str
-    data: ParamsData
-
-
-class CentrifugoCommand(TypedDict):
-    method: str
-    params: Params
-
-
-def expected_data(message_type: str, payload: Union[str, None]) -> CentrifugoCommand:
-    return {
-        "method": "publish",
-        "params": {
-            "channel": message_type,
-            "data": {
-                "payload": payload,
-            },
-        },
-    }
+LogRecordsType = Callable[[], List[logging.LogRecord]]
 
 
 @pytest.fixture
 def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
-    def inner() -> Iterator[logging.LogRecord]:
-        return filter(
-            lambda r: r.name == FrontendMessagingWriter.logger.name,
-            caplog.records,
+    def _inner() -> List[logging.LogRecord]:
+        return list(
+            filter(
+                lambda r: r.name == FrontendMessagingWriter.logger.name,
+                caplog.records,
+            )
         )
 
-    return inner
+    return _inner
 
 
 @pytest.fixture
@@ -67,67 +44,111 @@ def test_initializes_superclass(messaging_writer: FrontendMessagingWriter) -> No
     assert messaging_writer._queue.empty()
 
 
+@dataclass
+class RequestSuccesTestCase:
+    expected_msg_type: str
+    expected_payload: Union[str, None]
+    timeout: bool
+
+
+@dataclass
+class RequestFailureTestCase:
+    response_json: Dict[str, Any]
+    response_status: int
+    logged_error_contains: str
+
+
 @pytest.mark.asyncio
-async def test_http_requests(
-    event_loop: asyncio.AbstractEventLoop,
-    httpserver: HTTPServer,
-    log_records: LogRecordsType,
-    messaging_writer: FrontendMessagingWriter,
-    mocker: MockerFixture,
-) -> None:
-
-    expected_headers = {"Authorization": "apikey api_key"}
-    message = mocker.Mock(
-        message_type="test_message",
-        frontend_data={"payload": "test_payload"},
+class TestTask:
+    @pytest.mark.parametrize(
+        "testcase",
+        [
+            RequestSuccesTestCase("test_message", "test_payload", False),
+            RequestSuccesTestCase("heartbeat", None, True),
+        ],
+        ids=[
+            "OPC message",
+            "Heartbeat message",
+        ],
     )
+    async def test_request_success(
+        self,
+        event_loop: asyncio.AbstractEventLoop,
+        httpserver: HTTPServer,
+        log_records: LogRecordsType,
+        messaging_writer: FrontendMessagingWriter,
+        mocker: MockerFixture,
+        testcase: RequestSuccesTestCase,
+    ) -> None:
+        httpserver.expect_oneshot_request(
+            "/api",
+            method="POST",
+            headers={"Authorization": "apikey api_key"},
+            json={
+                "method": "publish",
+                "params": {
+                    "channel": testcase.expected_msg_type,
+                    "data": {
+                        "payload": testcase.expected_payload,
+                    },
+                },
+            },
+        ).respond_with_json({})
+        task = event_loop.create_task(messaging_writer.task())
+        if not testcase.timeout:
+            messaging_writer.put(
+                mocker.Mock(
+                    message_type="test_message",
+                    frontend_data={"payload": "test_payload"},
+                )
+            )
+        await asyncio.sleep(0.6 if testcase.timeout else 0.1)
+        httpserver.check_assertions()
+        assert not any(r.levelno == logging.ERROR for r in log_records())
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
 
-    # Step 1 expected request
-    httpserver.expect_ordered_request(
-        "/api",
-        method="POST",
-        json=expected_data("test_message", "test_payload"),
-        headers=expected_headers,
-    ).respond_with_json({})
-    # Step 2 expected request
-    httpserver.expect_ordered_request(
-        "/api",
-        method="POST",
-        json=expected_data("heartbeat", None),
-        headers=expected_headers,
-    ).respond_with_json({})
-    # Step 3 expected request
-    httpserver.expect_ordered_request(
-        "/api", headers=expected_headers
-    ).respond_with_data(status=404)
-    # Step 4 expected request
-    httpserver.expect_ordered_request(
-        "/api", headers=expected_headers
-    ).respond_with_json({"error": {"code": 102, "message": "namespace not found"}})
-
-    task = event_loop.create_task(messaging_writer.task())
-    # Step 1 - successfull request with status message
-    messaging_writer.put(message)
-    await asyncio.sleep(0.1)
-    httpserver.check_assertions()
-    # Step 2 - timeout waiting for message queue, heartbeat request
-    await asyncio.sleep(0.5)
-    httpserver.check_assertions()
-    # Step 3 - failing request (error 404)
-    messaging_writer.put(message)
-    await asyncio.sleep(0.1)
-    httpserver.check_assertions()
-    last_log_record = list(log_records())[-1]
-    assert last_log_record.levelno == logging.ERROR
-    assert "404" in last_log_record.message
-    # Step 4 - Centrifugo API error response
-    messaging_writer.put(message)
-    await asyncio.sleep(0.1)
-    httpserver.check_assertions()
-    last_log_record = list(log_records())[-1]
-    assert last_log_record.levelno == logging.ERROR
-    assert "Centrifugo API error: 102 namespace not found" in last_log_record.message
-
-    task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
+    @pytest.mark.parametrize(
+        "testcase",
+        [
+            RequestFailureTestCase({}, 404, "404"),
+            RequestFailureTestCase(
+                {"error": {"code": 102, "message": "namespace not found"}},
+                200,
+                "Centrifugo API error: 102 namespace not found",
+            ),
+        ],
+        ids=[
+            "Error 404",
+            "Centrifugo API error",
+        ],
+    )
+    async def test_request_failure(
+        self,
+        event_loop: asyncio.AbstractEventLoop,
+        httpserver: HTTPServer,
+        log_records: LogRecordsType,
+        messaging_writer: FrontendMessagingWriter,
+        mocker: MockerFixture,
+        testcase: RequestFailureTestCase,
+    ) -> None:
+        httpserver.expect_oneshot_request(
+            "/api",
+            headers={"Authorization": "apikey api_key"},
+        ).respond_with_json(testcase.response_json, status=testcase.response_status)
+        task = event_loop.create_task(messaging_writer.task())
+        messaging_writer.put(
+            mocker.Mock(
+                message_type="test_message",
+                frontend_data={"payload": "test_payload"},
+            )
+        )
+        await asyncio.sleep(0.1)
+        httpserver.check_assertions()
+        last_log_record = log_records()[-1]
+        assert last_log_record.levelno == logging.ERROR
+        assert testcase.logged_error_contains in last_log_record.message
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
