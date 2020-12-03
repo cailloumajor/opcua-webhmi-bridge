@@ -58,11 +58,9 @@ class OPCUAClient(AsyncTask):
             )
             await client.load_type_definitions([simatic_types_var])
 
-            sub_nodes = list(
-                set(self._config.monitor_nodes + self._config.record_nodes)
-            )
+            sub_nodes_ids = self._config.monitor_nodes + self._config.record_nodes
             sub_nodes = [
-                client.get_node(f"ns={ns};s={node_id}") for node_id in sub_nodes
+                client.get_node(f"ns={ns};s={node_id}") for node_id in sub_nodes_ids
             ]
             subscription = await client.create_subscription(1000, self)
             sub_results = await subscription.subscribe_data_change(sub_nodes)
