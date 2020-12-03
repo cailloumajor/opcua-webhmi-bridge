@@ -28,16 +28,20 @@ class InfluxPoint(TypedDict):
 
     measurement: str
     tags: Dict[str, str]
-    fields: Dict[str, Union[None, bool, float, int, str]]
+    fields: Dict[str, Union[bool, float, int, str]]
 
 
 def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Flattens a JSON data structure."""
+    """Flattens a dictionary of data coming from JSON decoding.
 
-    def unpack(
-        parent_key: str, parent_value: Union[Dict[str, Any], List[Dict[str, Any]], Any]
-    ) -> Iterator[Tuple[str, Any]]:
-        """Unpacks one level of nesting in JSON data structure."""
+    Args:
+        data: The dictionary to flatten.
+
+    Returns:
+        A dictionary of flattened data.
+    """
+
+    def _unpack(parent_key: str, parent_value: Any) -> Iterator[Tuple[str, Any]]:
         if isinstance(parent_value, dict):
             for key, value in parent_value.items():
                 yield f"{parent_key}.{key}", value
@@ -47,16 +51,13 @@ def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
         else:
             yield parent_key, parent_value
 
-    def remaining_work() -> bool:
-        return any(isinstance(v, t) for v in data.values() for t in (dict, list))
-
-    while remaining_work():
-        data = dict(chain.from_iterable(starmap(unpack, data.items())))
+    while any(isinstance(v, (dict, list)) for v in data.values()):
+        data = dict(chain.from_iterable(starmap(_unpack, data.items())))
 
     return data
 
 
-def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPoint]]:
+def to_influx(message: OPCDataChangeMessage) -> List[InfluxPoint]:
     """Converts OPC-UA data change message to InfluxDB data points(s)."""
     measurement = message.node_id.replace('"', "")
     if isinstance(message.payload, list):
@@ -70,11 +71,13 @@ def to_influx(message: OPCDataChangeMessage) -> Union[InfluxPoint, List[InfluxPo
             for index, elem in enumerate(message.payload)
         ]
     else:
-        return {
-            "measurement": measurement,
-            "tags": {},
-            "fields": flatten(message.payload),
-        }
+        return [
+            {
+                "measurement": measurement,
+                "tags": {},
+                "fields": flatten(message.payload),
+            }
+        ]
 
 
 class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):

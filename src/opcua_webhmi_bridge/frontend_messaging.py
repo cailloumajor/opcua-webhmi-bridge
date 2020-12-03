@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from json.decoder import JSONDecodeError
 from typing import Dict, Union
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
@@ -16,6 +17,9 @@ from .messages import (
 )
 
 OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
+
+HEARTBEAT_TIMEOUT = 5
+
 
 _logger = logging.getLogger(__name__)
 
@@ -40,12 +44,14 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
         api_key = self._config.api_key.get_secret_value()
         headers = {"Authorization": f"apikey {api_key}"}
         async with ClientSession(
-            headers=headers, raise_for_status=True, timeout=ClientTimeout(total=10)
+            headers=headers, timeout=ClientTimeout(total=10)
         ) as session:
             while True:
                 message: Union[OPCMessage, HeartBeatMessage]
                 try:
-                    message = await asyncio.wait_for(self._queue.get(), timeout=5)
+                    message = await asyncio.wait_for(
+                        self._queue.get(), timeout=HEARTBEAT_TIMEOUT
+                    )
                 except asyncio.TimeoutError:
                     message = HeartBeatMessage()
                 command = {
@@ -56,9 +62,18 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                     },
                 }
                 try:
-                    await session.post(self._config.api_url, json=command)
+                    async with session.post(self._config.api_url, json=command) as resp:
+                        resp.raise_for_status()
+                        resp_data = await resp.json()
+                        if (error := resp_data.get("error")) is not None:
+                            _logger.error(
+                                "%s - Centrifugo API error: %s %s",
+                                self.purpose,
+                                error["code"],
+                                error["message"],
+                            )
                 except ClientError as err:
-                    _logger.error("Frontend messaging publish error: %s", err)
+                    _logger.error("%s error: %s", self.purpose, err)
 
 
 class CentrifugoProxyServer(AsyncTask):
@@ -95,13 +110,22 @@ class CentrifugoProxyServer(AsyncTask):
 
     async def centrifugo_subscribe(self, request: web.Request) -> web.Response:
         """Handle Centrifugo subscription requests."""
-        context = await request.json()
-        channel = context["channel"]
-        if channel == OPCDataChangeMessage.message_type:
+        try:
+            context = await request.json()
+            channel = context.get("channel")
+        except JSONDecodeError:
+            raise web.HTTPInternalServerError(reason="JSON decode error")
+        except AttributeError:
+            raise web.HTTPBadRequest(reason="Bad request format")
+        if channel is None:
+            raise web.HTTPBadRequest(reason="Missing channel field")
+        elif channel == OPCDataChangeMessage.message_type:
             for message in self._last_opc_data.values():
                 self._messaging_writer.put(message)
         elif channel == OPCStatusMessage.message_type:
             self._messaging_writer.put(self.last_opc_status)
+        else:
+            raise web.HTTPBadRequest(reason="Unknown channel")
         return web.json_response({"result": {}})
 
     async def task(self) -> None:

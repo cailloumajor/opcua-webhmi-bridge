@@ -13,6 +13,8 @@
     },
 
     "containerEnv": {
+        // "http_proxy": "http://192.168.90.5:3128",
+        // "https_proxy": "http://192.168.90.5:3128",
         "POETRY_VIRTUALENVS_IN_PROJECT": "true"
     },
 
