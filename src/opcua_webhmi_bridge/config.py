@@ -4,7 +4,7 @@ import dataclasses
 import re
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import (
     AnyHttpUrl,
@@ -14,6 +14,7 @@ from pydantic import (
     PositiveInt,
     SecretStr,
     conint,
+    root_validator,
     stricturl,
 )
 from pydantic.env_settings import SettingsError
@@ -30,14 +31,16 @@ else:
 class ConfigError(ValueError):
     """Configuration error exception."""
 
-    def __init__(self, field: str, error: str) -> None:
+    def __init__(self, field: Union[str, None], error: str) -> None:
         """Initializes configuration error exception.
 
         Args:
             field: Configuration field the error is about.
             error: A string describing the error.
         """
-        super().__init__(f"{field.upper()} environment variable: {error}")
+        msg = f"{field.upper()} environment variable: " if field else ""
+        msg += error
+        super().__init__(msg)
         self.field = field
         self.error = error
 
@@ -85,6 +88,22 @@ class OPCSettings(BaseSettings):
         5, help="Delay in seconds to retry OPC-UA connection"
     )
 
+    @root_validator
+    def check_nodes_overlapping(
+        cls: "OPCSettings",  # noqa: U100, N805
+        values: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Validates that monitored node ids and recorded node ids do not ovelap."""
+        monitor_nodes: List[str] = values.get("monitor_nodes", [])
+        record_nodes: List[str] = values.get("record_nodes", [])
+        overlapping = set(monitor_nodes) & set(record_nodes)
+        if len(overlapping):
+            raise ValueError(
+                "Same node ids found in OPC_MONITOR_NODES "
+                "and OPC_RECORD_NODES environment variables"
+            )
+        return values
+
     class Config:  # noqa: D106
         env_prefix = "opc_"
 
@@ -110,10 +129,12 @@ class Settings:
             for field in dataclasses.fields(self):
                 setattr(self, field.name, field.type(env_file))
         except ValidationError as err:
+            config_field = None
             first_error = err.errors()[0]
-            settings_model = cast(BaseSettings, err.model)
-            config_field = settings_model.Config.env_prefix
-            config_field += first_error["loc"][0]
+            loc: str = first_error["loc"][0]
+            if loc != "__root__":
+                settings_model = cast(BaseSettings, err.model)
+                config_field = settings_model.Config.env_prefix + loc
             raise ConfigError(config_field, first_error["msg"])
         except SettingsError as err:
             config_field = "!-UNKNOWN-!"
