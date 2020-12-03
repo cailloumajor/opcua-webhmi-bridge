@@ -1,3 +1,5 @@
+"""Utilities used across all the package."""
+
 import asyncio
 from abc import ABC, abstractmethod
 from asyncio.events import AbstractEventLoop

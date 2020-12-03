@@ -7,8 +7,8 @@ from typing import Dict, Union
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
-from ._library import AsyncTask, MessageConsumer
 from .config import CentrifugoSettings
+from .library import AsyncTask, MessageConsumer
 from .messages import (
     HeartBeatMessage,
     LinkStatus,

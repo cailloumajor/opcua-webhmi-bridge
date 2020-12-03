@@ -10,10 +10,10 @@ from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
 from asyncua.ua.uaerrors import UaStatusCodeError
 
-from ._library import AsyncTask
 from .config import OPCSettings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
+from .library import AsyncTask
 from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"

@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterator, Type
 import pytest
 from _pytest.logging import LogCaptureFixture
 
-from opcua_webhmi_bridge._library import QUEUE_MAXSIZE, AsyncTask, MessageConsumer
+from opcua_webhmi_bridge.library import QUEUE_MAXSIZE, AsyncTask, MessageConsumer
 
 LogRecordsType = Callable[[], Iterator[LogRecord]]
 

@@ -10,10 +10,10 @@ from typing import Any, Dict, Optional
 import click
 import typer
 
-from ._library import AsyncTask
 from .config import ConfigError, Settings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
+from .library import AsyncTask
 from .opcua import OPCUAClient
 
 LOGGING_FILTERS = {

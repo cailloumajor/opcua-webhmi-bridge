@@ -13,8 +13,8 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
     from aioinflux import InfluxDBClient, InfluxDBError
 
-from ._library import MessageConsumer
 from .config import InfluxSettings
+from .library import MessageConsumer
 from .messages import OPCDataChangeMessage
 
 _logger = logging.getLogger(__name__)
