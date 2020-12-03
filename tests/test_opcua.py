@@ -73,6 +73,7 @@ def test_status_initialized(opcua_client: OPCUAClient) -> None:
 )
 def test_task(
     event_loop: asyncio.AbstractEventLoop,
+    log_records: LogRecordsType,
     mocker: MockerFixture,
     opcua_client: OPCUAClient,
     subscription_success: bool,
@@ -130,6 +131,10 @@ def test_task(
     if subscription_success:
         assert mocked_sleep.await_args_list == [mocker.call(5)]
         assert read_data_value.await_args_list == [mocker.call()]
+    else:
+        last_log_record = log_records()[-1]
+        assert last_log_record.levelno == logging.ERROR
+        assert "Error subscribing to node" in last_log_record.message
 
 
 class TestSetStatus:
