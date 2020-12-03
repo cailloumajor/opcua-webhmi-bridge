@@ -83,6 +83,24 @@ def test_bad_arg_type(
         Settings()
 
 
+@pytest.mark.parametrize(
+    "overlapping_arg",
+    [
+        EnvArg("OPC_MONITOR_NODES", '["node1", "node2", "node3"]'),
+        EnvArg("OPC_RECORD_NODES", '["node2", "node3", "node4"]'),
+    ],
+)
+def test_overlapping_nodes(
+    monkeypatch: MonkeyPatch,
+    overlapping_arg: EnvArg,
+    set_vars: SetVarsType,
+) -> None:
+    set_vars(MANDATORY_ENV_ARGS)
+    monkeypatch.setenv(overlapping_arg.name, overlapping_arg.value)
+    with pytest.raises(ConfigError, match="Same node ids found"):
+        Settings()
+
+
 def test_help(set_vars: SetVarsType) -> None:
     set_vars(MANDATORY_ENV_ARGS)
     mandatory_names = [n for n, _ in MANDATORY_ENV_ARGS]
