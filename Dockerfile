@@ -23,6 +23,7 @@ RUN python -m venv .venv \
 FROM python:3.8-slim
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
+LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua_webhmi_bridge
 
 ENV PYTHONUNBUFFERED 1
 
