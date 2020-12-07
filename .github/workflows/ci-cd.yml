@@ -112,7 +112,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ github.repository }}:${{ needs.docker-tag-format.outputs.tag }}
-            ${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ needs.docker-tag-format.outputs.tag }}
+            ghcr.io/${{ github.repository }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
