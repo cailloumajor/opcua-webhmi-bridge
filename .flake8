@@ -1,6 +1,5 @@
 [flake8]
 max-line-length = 80
-select = C,D,E,F,W,B,B901,N,S,U
 ignore = E501
 extend-ignore = E203,W503
 per-file-ignores =
