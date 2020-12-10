@@ -1,15 +1,14 @@
 import asyncio
 import contextlib
 import logging
-from dataclasses import dataclass
-from typing import Any, Callable, List
+from typing import Any, Callable, Dict, List
 
 import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
 
-from opcua_webhmi_bridge.influxdb import InfluxDBWriter, InfluxPoint, flatten, to_influx
+from opcua_webhmi_bridge.influxdb import InfluxDBWriter, flatten, to_influx
 
 LogRecordsType = Callable[[], List[logging.LogRecord]]
 
@@ -32,11 +31,7 @@ def influxdb_writer(
     httpserver: HTTPServer,
     mocker: MockerFixture,
 ) -> InfluxDBWriter:
-    config = mocker.Mock(
-        db_name="test_db",
-        host=httpserver.host,
-        port=httpserver.port,
-    )
+    config = mocker.Mock(db_name="test_db", root_url=httpserver.url_for("/influx"))
     return InfluxDBWriter(config)
 
 
@@ -46,11 +41,11 @@ def patch_flatten(mocker: MockerFixture) -> None:
 
 
 @pytest.fixture
-def patch_to_influx(mocker: MockerFixture) -> Callable[[List[InfluxPoint]], None]:
-    def _inner(messages: List[InfluxPoint]) -> None:
-        mocker.patch("opcua_webhmi_bridge.influxdb.to_influx", lambda _: messages)
-
-    return _inner
+def patch_to_influx(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "opcua_webhmi_bridge.influxdb.to_influx",
+        return_value="measurement,tag=tagval field=1.0 ",
+    )
 
 
 def test_initializes_superclass(influxdb_writer: InfluxDBWriter) -> None:
@@ -66,14 +61,22 @@ class TestFlatten:
     def test_empty_data(self) -> None:
         assert flatten({}) == {}
 
-    def test_success(self) -> None:
+    def test_flat_data(self) -> None:
         data = {
-            "field1": None,
+            "field1": 0.5,
+            "field2": "value2",
+            "field3": 42,
+        }
+        assert flatten(data) == data
+
+    def test_not_flat_data(self) -> None:
+        data = {
+            "field1": 4.5,
             "field2": {"field1": 1, "field2": [2, "elem2"]},
             "field3": [3, False, {"field1": "value1", "field2": True}],
         }
         assert flatten(data) == {
-            "field1": None,
+            "field1": 4.5,
             "field2.field1": 1,
             "field2.field2[0]": 2,
             "field2.field2[1]": "elem2",
@@ -86,85 +89,30 @@ class TestFlatten:
 
 @pytest.mark.usefixtures("patch_flatten")
 class TestToInflux:
-    def test_to_influx_list_payload(self, mocker: MockerFixture) -> None:
-        data = [{"field1": "value1"}, {"field1": "abcd", "field2": 42}]
+    def test_list_payload(self, mocker: MockerFixture) -> None:
+        data = [{"field1": 5.6, "field2": True}, {"field1": "ab cd", "field2": 42}]
         message = mocker.Mock(node_id='"list"."node"', payload=data)
-        assert to_influx(message) == [
-            {
-                "measurement": "list.node",
-                "tags": {"node_index": "0"},
-                "fields": {"field1": "value1"},
-            },
-            {
-                "measurement": "list.node",
-                "tags": {"node_index": "1"},
-                "fields": {"field1": "abcd", "field2": 42},
-            },
-        ]
+        assert to_influx(message) == "{0}\n{1}".format(
+            "list.node,node_index=0 field1=5.6,field2=True ",
+            'list.node,node_index=1 field1="ab cd",field2=42i ',
+        )
 
-    def test_to_influx_dict_payload(self, mocker: MockerFixture) -> None:
-        data = {"field1": 1, "field2": "value2"}
+    def test_dict_payload(self, mocker: MockerFixture) -> None:
+        data = {"field1": 1, "field2": "value 2", "field3": 1.0, "field4": False}
         message = mocker.Mock(node_id='"dict"."node"', payload=data)
-        assert to_influx(message) == [
-            {
-                "measurement": "dict.node",
-                "tags": {},
-                "fields": {"field1": 1, "field2": "value2"},
-            }
-        ]
+        expected = 'dict.node field1=1i,field2="value 2",field3=1.0,field4=False '
+        assert to_influx(message) == expected
 
-
-@dataclass
-class RequestSuccessTestCase:
-    influx_points: List[InfluxPoint]
-    expected_data: str
+    def test_field_value_error(self, mocker: MockerFixture) -> None:
+        data = {"field1": 1, "field2": None}
+        message = mocker.Mock(node_id='"error"."node"', payload=data)
+        with pytest.raises(ValueError, match="None"):
+            to_influx(message)
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("patch_to_influx")
 class TestTask:
-    @pytest.mark.parametrize(
-        "testcase",
-        [
-            RequestSuccessTestCase(
-                [
-                    {
-                        "measurement": "test_measurement1",
-                        "tags": {},
-                        "fields": {
-                            "field1": "value1",
-                            "field2": 2,
-                            "field3": 3.0,
-                            "field4": True,
-                        },
-                    }
-                ],
-                'test_measurement1 field1="value1",field2=2i,field3=3.0,field4=True ',
-            ),
-            RequestSuccessTestCase(
-                [
-                    {
-                        "measurement": "test_measurement2",
-                        "tags": {"index": "1"},
-                        "fields": {"field1": "value1"},
-                    },
-                    {
-                        "measurement": "test_measurement2",
-                        "tags": {"index": "2"},
-                        "fields": {"field1": "value2"},
-                    },
-                ],
-                (
-                    'test_measurement2,index=1 field1="value1" '
-                    "\n"
-                    'test_measurement2,index=2 field1="value2" '
-                ),
-            ),
-        ],
-        ids=[
-            "Single Influx point with multiple field types",
-            "Multiple Influx points with same measurement",
-        ],
-    )
     async def test_request_success(
         self,
         event_loop: asyncio.AbstractEventLoop,
@@ -172,16 +120,13 @@ class TestTask:
         influxdb_writer: InfluxDBWriter,
         log_records: LogRecordsType,
         mocker: MockerFixture,
-        patch_to_influx: Callable[[List[InfluxPoint]], None],
-        testcase: RequestSuccessTestCase,
     ) -> None:
-        patch_to_influx(testcase.influx_points)
         httpserver.expect_oneshot_request(
-            "/write",
+            "/influx/api/v2/write",
             method="POST",
-            data=testcase.expected_data,
-            query_string={"db": "test_db"},
-        ).respond_with_data(status=204)
+            data="measurement,tag=tagval field=1.0 ",
+            query_string={"bucket": "test_db", "precision": "s"},
+        ).respond_with_json({}, status=204)
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
@@ -191,42 +136,42 @@ class TestTask:
         with contextlib.suppress(asyncio.CancelledError):
             await task
 
+    @pytest.mark.parametrize(
+        ["resp_json", "expected_message"],
+        [
+            ({"error": "error JSON"}, "error JSON"),
+            ({"message": "error JSON"}, "error JSON"),
+            ({}, "NOT FOUND"),
+        ],
+        ids=[
+            "InfluxDB 1.8 error",
+            "InfluxDB 2.0 error",
+            "Empty response",
+        ],
+    )
     async def test_request_failure(
         self,
         event_loop: asyncio.AbstractEventLoop,
+        expected_message: str,
         httpserver: HTTPServer,
         influxdb_writer: InfluxDBWriter,
         log_records: LogRecordsType,
         mocker: MockerFixture,
-        patch_to_influx: Callable[[List[InfluxPoint]], None],
+        resp_json: Dict[str, str],
     ) -> None:
-        patch_to_influx(
-            [
-                {
-                    "measurement": "test_measurement",
-                    "tags": {},
-                    "fields": {"key": "value"},
-                }
-            ]
-        )
         httpserver.expect_oneshot_request(
-            "/write",
+            "/influx/api/v2/write",
             method="POST",
-            data='test_measurement key="value" ',
-            query_string={"db": "test_db"},
-        ).respond_with_json(
-            {"error": "error JSON"},
-            status=404,
-            headers={"X-Influxdb-Error": "error header"},
-        )
+            data="measurement,tag=tagval field=1.0 ",
+            query_string={"bucket": "test_db", "precision": "s"},
+        ).respond_with_json(resp_json, status=404)
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
         httpserver.check_assertions()
         last_log_record = log_records()[-1]
         assert last_log_record.levelno == logging.ERROR
-        assert "error JSON" not in last_log_record.message
-        assert "error header" in last_log_record.message
+        assert expected_message in last_log_record.message
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await task

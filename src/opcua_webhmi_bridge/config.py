@@ -67,8 +67,9 @@ class InfluxSettings(BaseSettings):
     """InfluxDB related configuration options."""
 
     db_name: str = Field(..., help="Name of the InfluxDB database to use")
-    host: str = Field("localhost", help="Host on which InfluxDB server is reachable")
-    port: PortField = Field(8086, help="Port on which InfluxDB server is reachable")
+    root_url: AnyHttpUrl = Field(
+        "http://localhost:8086/", help="Root URL of InfluxDB 2.0 API"
+    )
 
     class Config:  # noqa: D106
         env_prefix = "influx_"

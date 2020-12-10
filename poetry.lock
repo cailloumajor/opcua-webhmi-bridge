@@ -26,24 +26,6 @@ yarl = ">=1.0,<2.0"
 speedups = ["aiodns", "brotlipy", "cchardet"]
 
 [[package]]
-name = "aioinflux"
-version = "0.9.0"
-description = "Asynchronous Python client for InfluxDB"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-aiohttp = ">=3.0"
-ciso8601 = "*"
-
-[package.extras]
-cache = ["aioredis (>=1.2.0)", "lz4 (>=2.1.0)"]
-docs = ["docutils", "sphinx", "sphinx-rtd-theme", "sphinx-autodoc-typehints"]
-pandas = ["pandas (>=0.21)", "numpy"]
-test = ["pytest", "pytest-asyncio", "pytest-cov", "pyyaml", "pytz", "flake8", "pep8-naming", "flake8-rst-docstrings", "pygments", "dataclasses"]
-
-[[package]]
 name = "aiosqlite"
 version = "0.16.0"
 description = "asyncio bridge to the standard sqlite3 module"
@@ -160,14 +142,6 @@ pycparser = "*"
 name = "chardet"
 version = "3.0.4"
 description = "Universal encoding detector for Python 2 and 3"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
-name = "ciso8601"
-version = "2.1.3"
-description = "Fast ISO8601 date time parser for Python written in C"
 category = "main"
 optional = false
 python-versions = "*"
@@ -781,7 +755,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "21414317cd816a9f1edf09488dd504dd4acc1d60ff8927f45e5b5cc698390cbd"
+content-hash = "7d27f5ba674a16311d45cccbaad08481ca24f58b8cfe825f1f5ac6b0103c612e"
 
 [metadata.files]
 aiofiles = [
@@ -826,10 +800,6 @@ aiohttp = [
     {file = "aiohttp-3.7.3-cp39-cp39-win32.whl", hash = "sha256:3b0036c978cbcc4a4512278e98e3e6d9e6b834dc973206162eddf98b586ef1c6"},
     {file = "aiohttp-3.7.3-cp39-cp39-win_amd64.whl", hash = "sha256:e1b95972a0ae3f248a899cdbac92ba2e01d731225f566569311043ce2226f5e7"},
     {file = "aiohttp-3.7.3.tar.gz", hash = "sha256:9c1a81af067e72261c9cbe33ea792893e83bc6aa987bfbd6fdc1e5e7b22777c4"},
-]
-aioinflux = [
-    {file = "aioinflux-0.9.0-py3-none-any.whl", hash = "sha256:f812d2814492164282c28cbe867d32cce3e8d256e116c6cf4675e896fe804953"},
-    {file = "aioinflux-0.9.0.tar.gz", hash = "sha256:720d056a9069ac3688f83b35786b234c890afb7c9a379eb421e5379e1eabc5cb"},
 ]
 aiosqlite = [
     {file = "aiosqlite-0.16.0-py3-none-any.whl", hash = "sha256:0e5b8465b0b6aa7f2b0a1fa7f3af53216fcea1947f524b658bd4b4696e72f1b7"},
@@ -902,9 +872,6 @@ cffi = [
 chardet = [
     {file = "chardet-3.0.4-py2.py3-none-any.whl", hash = "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"},
     {file = "chardet-3.0.4.tar.gz", hash = "sha256:84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae"},
-]
-ciso8601 = [
-    {file = "ciso8601-2.1.3.tar.gz", hash = "sha256:bdbb5b366058b1c87735603b23060962c439ac9be66f1ae91e8c7dbd7d59e262"},
 ]
 click = [
     {file = "click-7.1.2-py2.py3-none-any.whl", hash = "sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc"},

@@ -3,35 +3,44 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from itertools import chain, starmap
-from typing import Any, Dict, Iterator, List, Tuple, TypedDict, Union
+from operator import itemgetter
+from typing import Any, Dict, Iterator, List, NamedTuple, Tuple, Union
 
-from aiohttp import ClientError, ClientTimeout
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=UserWarning)
-    from aioinflux import InfluxDBClient, InfluxDBError
+from aiohttp import ClientError, ClientSession, ClientTimeout
+from yarl import URL
 
 from .config import InfluxSettings
 from .library import MessageConsumer
 from .messages import OPCDataChangeMessage
 
+# A JSON scalar can be null, but data here comes from OPC-UA,
+# where a null value is not acceptable.
+JsonScalar = Union[str, int, float, bool]
+Flattened = Dict[str, JsonScalar]
+
 _logger = logging.getLogger(__name__)
 
 
-class InfluxPoint(TypedDict):
-    """Represents an InfluxDB data point.
+class InfluxDBWriteError(ClientError):
+    """InfluxDB write error exception."""
 
-    Attributes are self-describing in InfluxDB context.
+    pass
+
+
+class InfluxPoint(NamedTuple):
+    """Represents an InfluxDB data point, excluding measurement.
+
+    Attributes:
+        tags: A dict of tags, keys and values all being strings.
+        fields: A dict of flattened data.
     """
 
-    measurement: str
     tags: Dict[str, str]
-    fields: Dict[str, Union[bool, float, int, str]]
+    fields: Flattened
 
 
-def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
+def flatten(data: Dict[str, Any]) -> Flattened:
     """Flattens a dictionary of data coming from JSON decoding.
 
     Args:
@@ -57,27 +66,53 @@ def flatten(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def to_influx(message: OPCDataChangeMessage) -> List[InfluxPoint]:
-    """Converts OPC-UA data change message to InfluxDB data points(s)."""
+def to_influx(message: OPCDataChangeMessage) -> str:
+    """Converts OPC-UA data change message to InfluxDB line protocol.
+
+    Args:
+        message: The OPC-UA data message.
+
+    Returns:
+        A string representing the data, in InfluxDB line protocol format.
+    """
+
+    def _influx_field_value(scalar: JsonScalar) -> str:
+        """Converts a scalar to an InfluxDB field value representation."""
+        # Treat boolean first, because it is also a instance of int
+        if isinstance(scalar, bool):
+            return str(scalar)
+        elif isinstance(scalar, str):
+            return f'"{scalar}"'
+        elif isinstance(scalar, int):
+            return f"{scalar}i"
+        elif isinstance(scalar, float):
+            return str(scalar)
+        else:
+            raise ValueError(f"Invalid InfluxDB field value: {scalar}")
+
     measurement = message.node_id.replace('"', "")
+    points: List[InfluxPoint] = []
+    lines: List[str] = []
     if isinstance(message.payload, list):
         index_tag = measurement.split(".")[-1] + "_index"
-        return [
-            {
-                "measurement": measurement,
-                "tags": {index_tag: str(index)},
-                "fields": flatten(elem),
-            }
-            for index, elem in enumerate(message.payload)
-        ]
+        for index, elem in enumerate(message.payload):
+            points.append(InfluxPoint({index_tag: str(index)}, flatten(elem)))
     else:
-        return [
-            {
-                "measurement": measurement,
-                "tags": {},
-                "fields": flatten(message.payload),
-            }
-        ]
+        points.append(InfluxPoint({}, flatten(message.payload)))
+    for point in points:
+        line = measurement
+        if point.tags:
+            # InfluxDB documentation recommends to sort tags by key
+            sorted_tags = sorted(point.tags.items(), key=itemgetter(0))
+            line += "," + ",".join(f"{key}={value}" for key, value in sorted_tags)
+        line += " "
+        line += ",".join(
+            f"{key}={_influx_field_value(value)}" for key, value in point.fields.items()
+        )
+        line += " "
+        lines.append(line)
+
+    return "\n".join(lines)
 
 
 class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
@@ -97,15 +132,23 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
 
     async def task(self) -> None:
         """Implements InfluxDB writer asynchronous task."""
-        async with InfluxDBClient(
-            host=self._config.host,
-            port=self._config.port,
-            db=self._config.db_name,
-            timeout=ClientTimeout(total=5),
-        ) as client:
+        url = URL(str(self._config.root_url)) / "api/v2/write"
+        params = {"bucket": self._config.db_name, "precision": "s"}
+        async with ClientSession(timeout=ClientTimeout(total=10)) as session:
             while True:
-                points = to_influx(await self._queue.get())
+                line_protocol = to_influx(await self._queue.get())
                 try:
-                    await client.write(points)
-                except (ClientError, InfluxDBError) as err:
-                    _logger.error("InfluxDB write error: %s", err)
+                    async with session.post(
+                        url, params=params, data=line_protocol
+                    ) as resp:
+                        if not resp.status == 204:
+                            resp_data = await resp.json()
+                            # InfluxDB 1.8
+                            if (error := resp_data.get("error")) is not None:
+                                raise InfluxDBWriteError(error)
+                            # InfluxDB 2.0
+                            if (message := resp_data.get("message")) is not None:
+                                raise InfluxDBWriteError(message)
+                            resp.raise_for_status()
+                except ClientError as err:
+                    _logger.error("Write request error: %s", err)
