@@ -46,10 +46,12 @@ class EnvVarsEpilogCommand(typer.core.TyperCommand):
             formatter.write_dl(Settings.help())
 
 
-async def shutdown(
-    loop: asyncio.AbstractEventLoop, sig: Optional[signal.Signals] = None
-) -> None:
-    """Cleanups tasks tied to the service's shutdown."""
+async def shutdown(sig: Optional[signal.Signals] = None) -> None:
+    """Cleanups tasks tied to the service's shutdown.
+
+    Args:
+        sig: Optional; The signal that triggered the shutdown.
+    """
     if sig:
         _logger.info("Received exit signal %s", sig.name)
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
@@ -64,6 +66,8 @@ async def shutdown(
             result, Exception
         ):
             _logger.error("Exception occured during shutdown: %s", result)
+    loop = asyncio.get_running_loop()
+    await loop.shutdown_asyncgens()
     loop.stop()
 
 
@@ -73,17 +77,23 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -
     # but context["exception"] and context["future"] may not
     try:
         exc: Exception = context["exception"]
-        future: asyncio.Future[Any] = context["future"]
+        future = context["future"]
+        future_name = "unknown"
+        try:
+            # If future is a Task, get its name
+            future_name = future.get_name()
+        except AttributeError:
+            pass
         _logger.error(
             "Caught exception `%s` in %s task: %s",
             exc.__class__.__name__,
-            future.get_name() if isinstance(future, asyncio.Task) else "unknown",
+            future_name,
             exc,
         )
     except KeyError:
         _logger.error("Caught exception: %s", context["message"])
     _logger.info("Shutting down...")
-    asyncio.create_task(shutdown(loop))
+    loop.create_task(shutdown())
 
 
 @app.command(cls=EnvVarsEpilogCommand)
@@ -128,10 +138,8 @@ def main(
     loop.set_debug(verbose)
 
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
-    for s in signals:
-        loop.add_signal_handler(
-            s, lambda s=s: asyncio.create_task(shutdown(loop, sig=s))
-        )
+    for sig in signals:
+        loop.add_signal_handler(sig, lambda sig=sig: loop.create_task(shutdown(sig)))
     loop.set_exception_handler(handle_exception)
 
     frontend_messaging_writer = FrontendMessagingWriter(env_settings.centrifugo)
