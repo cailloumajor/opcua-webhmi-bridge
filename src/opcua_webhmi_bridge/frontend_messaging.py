@@ -12,6 +12,7 @@ from .library import AsyncTask, MessageConsumer
 from .messages import (
     HeartBeatMessage,
     LinkStatus,
+    MessageType,
     OPCDataChangeMessage,
     OPCStatusMessage,
 )
@@ -57,7 +58,7 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                 command = {
                     "method": "publish",
                     "params": {
-                        "channel": message.message_type,
+                        "channel": message.message_type.value,
                         "data": message.frontend_data,
                     },
                 }
@@ -110,6 +111,10 @@ class CentrifugoProxyServer(AsyncTask):
 
     async def centrifugo_subscribe(self, request: web.Request) -> web.Response:
         """Handle Centrifugo subscription requests."""
+
+        def _error(code: int, message: str) -> web.Response:
+            return web.json_response({"error": {"code": code, "message": message}})
+
         try:
             context = await request.json()
             channel = context.get("channel")
@@ -118,14 +123,16 @@ class CentrifugoProxyServer(AsyncTask):
         except AttributeError:
             raise web.HTTPBadRequest(reason="Bad request format")
         if channel is None:
-            raise web.HTTPBadRequest(reason="Missing channel field")
-        elif channel == OPCDataChangeMessage.message_type:
+            return _error(1000, "Missing channel field")
+        elif channel == MessageType.OPC_DATA_CHANGE:
             for message in self._last_opc_data.values():
                 self._messaging_writer.put(message)
-        elif channel == OPCStatusMessage.message_type:
+        elif channel == MessageType.OPC_STATUS:
             self._messaging_writer.put(self.last_opc_status)
-        else:
-            raise web.HTTPBadRequest(reason="Unknown channel")
+        try:
+            MessageType(channel)
+        except ValueError:
+            return _error(1001, "Unknown channel")
         return web.json_response({"result": {}})
 
     async def task(self) -> None:

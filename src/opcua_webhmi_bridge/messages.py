@@ -8,6 +8,14 @@ from typing import Any, Dict, List, Union
 DataChangePayload = Union[List[Dict[str, Any]], Dict[str, Any]]
 
 
+class MessageType(str, enum.Enum):
+    """Enumeration of message types."""
+
+    OPC_DATA_CHANGE = "opc_data_change"
+    OPC_STATUS = "opc_status"
+    HEARTBEAT = "heartbeat"
+
+
 class OPCUAEncoder(json.JSONEncoder):
     """JSON encoder that recognizes OPC-UA data structures."""
 
@@ -23,10 +31,10 @@ class BaseMessage:
     """Base class for application messages.
 
     Attributes:
-        message_type: A string describing the message type.
+        message_type: A member of MessageType enum describing the message type.
     """
 
-    message_type: str = field(init=False)
+    message_type: MessageType = field(init=False)
 
     @property
     def frontend_data(self) -> Dict[str, Any]:
@@ -44,7 +52,7 @@ class OPCDataChangeMessage(BaseMessage):
         payload: The flattened representation of OPC-UA data.
     """
 
-    message_type = "opc_data_change"
+    message_type = MessageType.OPC_DATA_CHANGE
     node_id: str
     payload: DataChangePayload = field(init=False)
     ua_object: InitVar[Any]
@@ -75,7 +83,7 @@ class OPCStatusMessage(BaseMessage):
         payload: The status of OPC-UA server link.
     """
 
-    message_type = "opc_status"
+    message_type = MessageType.OPC_STATUS
     payload: LinkStatus
 
 
@@ -83,5 +91,5 @@ class OPCStatusMessage(BaseMessage):
 class HeartBeatMessage(BaseMessage):
     """Heartbeat empty message."""
 
-    message_type = "heartbeat"
+    message_type = MessageType.HEARTBEAT
     payload: None = None

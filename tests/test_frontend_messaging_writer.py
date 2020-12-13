@@ -40,6 +40,16 @@ def messaging_writer(
     return FrontendMessagingWriter(config)
 
 
+@pytest.fixture
+def fake_message(mocker: MockerFixture) -> Any:
+    return mocker.Mock(
+        **{
+            "message_type.value": "test_message",
+            "frontend_data": {"payload": "test_payload"},
+        }
+    )
+
+
 def test_initializes_superclass(messaging_writer: FrontendMessagingWriter) -> None:
     assert messaging_writer._queue.empty()
 
@@ -74,10 +84,10 @@ class TestTask:
     async def test_request_success(
         self,
         event_loop: asyncio.AbstractEventLoop,
+        fake_message: Any,
         httpserver: HTTPServer,
         log_records: LogRecordsType,
         messaging_writer: FrontendMessagingWriter,
-        mocker: MockerFixture,
         testcase: RequestSuccesTestCase,
     ) -> None:
         httpserver.expect_oneshot_request(
@@ -96,12 +106,7 @@ class TestTask:
         ).respond_with_json({})
         task = event_loop.create_task(messaging_writer.task())
         if not testcase.timeout:
-            messaging_writer.put(
-                mocker.Mock(
-                    message_type="test_message",
-                    frontend_data={"payload": "test_payload"},
-                )
-            )
+            messaging_writer.put(fake_message)
         await asyncio.sleep(0.6 if testcase.timeout else 0.1)
         httpserver.check_assertions()
         assert not any(r.levelno == logging.ERROR for r in log_records())
@@ -127,10 +132,10 @@ class TestTask:
     async def test_request_failure(
         self,
         event_loop: asyncio.AbstractEventLoop,
+        fake_message: Any,
         httpserver: HTTPServer,
         log_records: LogRecordsType,
         messaging_writer: FrontendMessagingWriter,
-        mocker: MockerFixture,
         testcase: RequestFailureTestCase,
     ) -> None:
         httpserver.expect_oneshot_request(
@@ -138,12 +143,7 @@ class TestTask:
             headers={"Authorization": "apikey api_key"},
         ).respond_with_json(testcase.response_json, status=testcase.response_status)
         task = event_loop.create_task(messaging_writer.task())
-        messaging_writer.put(
-            mocker.Mock(
-                message_type="test_message",
-                frontend_data={"payload": "test_payload"},
-            )
-        )
+        messaging_writer.put(fake_message)
         await asyncio.sleep(0.1)
         httpserver.check_assertions()
         last_log_record = log_records()[-1]
