@@ -12,6 +12,7 @@ from aiohttp.web_urldispatcher import _WebHandler
 from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.frontend_messaging import CentrifugoProxyServer
+from opcua_webhmi_bridge.messages import MessageType
 
 ClientFixture = Callable[[RawTestServer], Awaitable[TestClient]]
 RawServerFixture = Callable[[_WebHandler], Awaitable[RawTestServer]]
@@ -110,9 +111,7 @@ class TestCentrifugoSubscribe:
         }
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
         client = await aiohttp_client(server)
-        response = await client.post("/", json={"channel": "opc_data_change"})
-        assert response.status == 200
-        assert await response.json() == {"result": {}}
+        await client.post("/", json={"channel": "opc_data_change"})
         put = cast(MockType, proxy_server._messaging_writer.put)
         expected_calls = [((m,),) for m in messages]
         assert put.call_args_list == expected_calls
@@ -128,11 +127,23 @@ class TestCentrifugoSubscribe:
         proxy_server.last_opc_status = status_message
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
         client = await aiohttp_client(server)
-        response = await client.post("/", json={"channel": "opc_status"})
-        assert response.status == 200
-        assert await response.json() == {"result": {}}
+        await client.post("/", json={"channel": "opc_status"})
         put = cast(MockType, proxy_server._messaging_writer.put)
         put.assert_called_once_with(status_message)
+
+    @pytest.mark.parametrize("message_type", MessageType)
+    async def test_known_channel(
+        self,
+        aiohttp_client: ClientFixture,
+        aiohttp_raw_server: RawServerFixture,
+        message_type: MessageType,
+        proxy_server: CentrifugoProxyServer,
+    ) -> None:
+        server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
+        client = await aiohttp_client(server)
+        response = await client.post("/", json={"channel": message_type.value})
+        assert response.status == 200
+        assert await response.json() == {"result": {}}
 
 
 @pytest.mark.asyncio

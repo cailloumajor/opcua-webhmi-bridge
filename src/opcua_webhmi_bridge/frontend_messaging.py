@@ -129,7 +129,9 @@ class CentrifugoProxyServer(AsyncTask):
                 self._messaging_writer.put(message)
         elif channel == MessageType.OPC_STATUS:
             self._messaging_writer.put(self.last_opc_status)
-        else:
+        try:
+            MessageType(channel)
+        except ValueError:
             return _error(1001, "Unknown channel")
         return web.json_response({"result": {}})
 
