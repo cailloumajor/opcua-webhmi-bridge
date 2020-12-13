@@ -44,66 +44,68 @@ def test_last_opc_data(
     assert proxy_server._last_opc_data == {}
 
 
-@pytest.mark.parametrize(
-    "json,exp_status,exp_reason",
-    [
-        (None, 500, "JSON decode error"),
-        ([], 400, "Bad request format"),
-        ({}, 400, "Missing channel field"),
-        ({"channel": "badchannel"}, 400, "Unknown channel"),
-    ],
-    ids=["Bad JSON", "Bad format", "Missing channel", "Unknown channel"],
-)
-async def test_subscribe_error(
-    aiohttp_client: ClientFixture,
-    aiohttp_raw_server: RawServerFixture,
-    exp_status: int,
-    exp_reason: str,
-    json: Any,
-    proxy_server: CentrifugoProxyServer,
-) -> None:
-    server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
-    client = await aiohttp_client(server)
-    response = await client.post("/", json=json)
-    assert response.status == exp_status
-    assert response.reason == exp_reason
+class TestCentrifugoSubscribe:
+    @pytest.mark.parametrize(
+        "json,exp_status,exp_reason",
+        [
+            (None, 500, "JSON decode error"),
+            ([], 400, "Bad request format"),
+            ({}, 400, "Missing channel field"),
+            ({"channel": "badchannel"}, 400, "Unknown channel"),
+        ],
+        ids=["Bad JSON", "Bad format", "Missing channel", "Unknown channel"],
+    )
+    async def test_http_error(
+        self,
+        aiohttp_client: ClientFixture,
+        aiohttp_raw_server: RawServerFixture,
+        exp_status: int,
+        exp_reason: str,
+        json: Any,
+        proxy_server: CentrifugoProxyServer,
+    ) -> None:
+        server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
+        client = await aiohttp_client(server)
+        response = await client.post("/", json=json)
+        assert response.status == exp_status
+        assert response.reason == exp_reason
 
+    async def test_opc_data_change(
+        self,
+        aiohttp_client: ClientFixture,
+        aiohttp_raw_server: RawServerFixture,
+        mocker: MockerFixture,
+        proxy_server: CentrifugoProxyServer,
+    ) -> None:
+        messages = [mocker.Mock(f"message_{i}") for i in range(5)]
+        proxy_server._last_opc_data = {
+            str(index): value for index, value in enumerate(messages)
+        }
+        server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
+        client = await aiohttp_client(server)
+        response = await client.post("/", json={"channel": "opc_data_change"})
+        assert response.status == 200
+        assert await response.json() == {"result": {}}
+        put = cast(MockType, proxy_server._messaging_writer.put)
+        expected_calls = [((m,),) for m in messages]
+        assert put.call_args_list == expected_calls
 
-async def test_subscribe_opc_data_change(
-    aiohttp_client: ClientFixture,
-    aiohttp_raw_server: RawServerFixture,
-    mocker: MockerFixture,
-    proxy_server: CentrifugoProxyServer,
-) -> None:
-    messages = [mocker.Mock(f"message_{i}") for i in range(5)]
-    proxy_server._last_opc_data = {
-        str(index): value for index, value in enumerate(messages)
-    }
-    server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
-    client = await aiohttp_client(server)
-    response = await client.post("/", json={"channel": "opc_data_change"})
-    assert response.status == 200
-    assert await response.json() == {"result": {}}
-    put = cast(MockType, proxy_server._messaging_writer.put)
-    expected_calls = [((m,),) for m in messages]
-    assert put.call_args_list == expected_calls
-
-
-async def test_subscribe_opc_status(
-    aiohttp_client: ClientFixture,
-    aiohttp_raw_server: RawServerFixture,
-    mocker: MockerFixture,
-    proxy_server: CentrifugoProxyServer,
-) -> None:
-    status_message = mocker.Mock()
-    proxy_server.last_opc_status = status_message
-    server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
-    client = await aiohttp_client(server)
-    response = await client.post("/", json={"channel": "opc_status"})
-    assert response.status == 200
-    assert await response.json() == {"result": {}}
-    put = cast(MockType, proxy_server._messaging_writer.put)
-    put.assert_called_once_with(status_message)
+    async def test_opc_status(
+        self,
+        aiohttp_client: ClientFixture,
+        aiohttp_raw_server: RawServerFixture,
+        mocker: MockerFixture,
+        proxy_server: CentrifugoProxyServer,
+    ) -> None:
+        status_message = mocker.Mock()
+        proxy_server.last_opc_status = status_message
+        server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
+        client = await aiohttp_client(server)
+        response = await client.post("/", json={"channel": "opc_status"})
+        assert response.status == 200
+        assert await response.json() == {"result": {}}
+        put = cast(MockType, proxy_server._messaging_writer.put)
+        put.assert_called_once_with(status_message)
 
 
 @pytest.mark.asyncio
