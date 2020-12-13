@@ -57,7 +57,7 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                 command = {
                     "method": "publish",
                     "params": {
-                        "channel": message.message_type,
+                        "channel": message.message_type.value,
                         "data": message.frontend_data,
                     },
                 }

@@ -1,11 +1,12 @@
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 from opcua_webhmi_bridge.messages import BaseMessage, OPCDataChangeMessage
 
 
 @dataclass
 class MessageForTesting(BaseMessage):
-    message_type = "test_message"
+    message_type = Mock()
     numeric_field: int
     text_field: str
 
