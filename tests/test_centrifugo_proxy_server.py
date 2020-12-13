@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from typing import Any, Awaitable, Callable, cast
+from typing import Any, Awaitable, Callable, Dict, cast
 from unittest.mock import Mock as MockType
 
 import aiohttp
@@ -46,14 +46,15 @@ def test_last_opc_data(
 
 class TestCentrifugoSubscribe:
     @pytest.mark.parametrize(
-        "json,exp_status,exp_reason",
+        ["json", "exp_status", "exp_reason"],
         [
             (None, 500, "JSON decode error"),
             ([], 400, "Bad request format"),
-            ({}, 400, "Missing channel field"),
-            ({"channel": "badchannel"}, 400, "Unknown channel"),
         ],
-        ids=["Bad JSON", "Bad format", "Missing channel", "Unknown channel"],
+        ids=[
+            "Bad JSON",
+            "Bad format",
+        ],
     )
     async def test_http_error(
         self,
@@ -69,6 +70,32 @@ class TestCentrifugoSubscribe:
         response = await client.post("/", json=json)
         assert response.status == exp_status
         assert response.reason == exp_reason
+
+    @pytest.mark.parametrize(
+        ["json", "expected_error"],
+        [
+            ({}, {"code": 1000, "message": "Missing channel field"}),
+            ({"channel": "badchannel"}, {"code": 1001, "message": "Unknown channel"}),
+        ],
+        ids=[
+            "Missing channel",
+            "Unknown channel",
+        ],
+    )
+    async def test_centrifugo_error(
+        self,
+        aiohttp_client: ClientFixture,
+        aiohttp_raw_server: RawServerFixture,
+        expected_error: Dict[str, Any],
+        json: Dict[str, Any],
+        proxy_server: CentrifugoProxyServer,
+    ) -> None:
+        server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
+        client = await aiohttp_client(server)
+        response = await client.post("/", json=json)
+        assert response.status == 200
+        response_json = await response.json()
+        assert response_json["error"] == expected_error
 
     async def test_opc_data_change(
         self,
