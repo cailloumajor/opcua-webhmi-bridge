@@ -2,7 +2,7 @@ import re
 from typing import Callable, Iterable, NamedTuple
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
+from pytest import MonkeyPatch
 
 from opcua_webhmi_bridge.config import ConfigError, Settings
 
