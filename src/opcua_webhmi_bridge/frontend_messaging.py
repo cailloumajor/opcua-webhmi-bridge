@@ -142,7 +142,7 @@ class CentrifugoProxyServer(AsyncTask):
         runner = web.AppRunner(app)
         await runner.setup()
         try:
-            site = web.TCPSite(runner, self._config.proxy_host, self._config.proxy_port)
+            site = web.TCPSite(runner, None, self._config.proxy_port)
             await site.start()
             _logger.info("Centrifugo proxy server started")
             while True:
