@@ -29,7 +29,7 @@ repos:
           - flake8-unused-arguments~=0.0 # renovate: follow
           - pep8-naming~=0.11 # renovate: follow
   - repo: https://github.com/PyCQA/isort
-    rev: 5.6.4
+    rev: 5.7.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
