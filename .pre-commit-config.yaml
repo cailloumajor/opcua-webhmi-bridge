@@ -37,8 +37,8 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - aiohttp~=3.7.2 # renovate: follow
-          - pydantic~=1.7.1 # renovate: follow
+          - aiohttp==3.7.3 # renovate: follow
+          - pydantic==1.7.3 # renovate: follow
+          - typer==0.3.2 # renovate: follow
           - pytest~=6.1 # renovate: follow
           - pytest-mock~=3.3 # renovate: follow
-          - typer~=0.3.2 # renovate: follow
