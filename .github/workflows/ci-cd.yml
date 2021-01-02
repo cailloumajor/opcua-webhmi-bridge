@@ -101,8 +101,8 @@ jobs:
           tar -xf virtual-environment.tar
           rm virtual-environment.tar
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
-      - name: Test with pytest
-        run: pytest -vv --cov-report=xml
+      - name: Run unit tests
+        run: pytest -vv --cov-report=xml --skip-integration
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
