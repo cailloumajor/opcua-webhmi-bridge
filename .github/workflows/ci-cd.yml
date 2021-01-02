@@ -90,6 +90,7 @@ jobs:
         run: |
           tar -xf virtual-environment.tar
           rm virtual-environment.tar
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - name: Set up mypy cache
         uses: actions/cache@v2
         with:
@@ -98,9 +99,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mypy-
       - name: Check static typing of the main package
-        run: .venv/bin/mypy src/opcua_webhmi_bridge
+        run: mypy src/opcua_webhmi_bridge
       - name: Test with pytest
-        run: .venv/bin/pytest -vv --cov-report=xml
+        run: pytest -vv --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
