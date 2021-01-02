@@ -10,58 +10,104 @@ on:
     branches:
       - master
 
+env:
+  PYTHON_VERSION: "3.8"
+
 jobs:
-  hooks:
-    name: Code quality hooks
+  virtual-env:
+    name: Build virtual environment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up Poetry cache for Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry/cache
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+      - name: Install Poetry
+        run: |
+          source poetry_install_vars.sh
+          curl -sSL -o get-poetry.py "$POETRY_URL"
+          python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+          echo "POETRY_VIRTUALENVS_IN_PROJECT=true" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      # Archive virtual environment to keep file permissions
+      - name: Make a TAR archive of virtual environment
+        run: tar -cf virtual-environment.tar .venv/
+      - name: Upload virtual environment artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: virtual-environment
+          path: virtual-environment.tar
+          if-no-files-found: error
+          retention-days: 1
+  hooks:
+    name: Code quality hooks
+    runs-on: ubuntu-latest
+    needs:
+      - virtual-env
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download virtual environment artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: virtual-environment
+      - name: Extract virtual environment
+        run: |
+          tar -xf virtual-environment.tar
+          rm virtual-environment.tar
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - uses: pre-commit/action@v2.0.0
         env:
           SKIP: mypy
+      - name: Check static typing of the main package
+        run: mypy src/opcua_webhmi_bridge
   tests:
     name: Tests and code coverage
     runs-on: ubuntu-latest
-    env:
-      PYTHON_VERSION: "3.8"
+    needs:
+      - virtual-env
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    - name: Set up Poetry cache for Python dependencies
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pypoetry/cache
-        key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-poetry-
-    - name: Install Poetry
-      run: |
-        source poetry_install_vars.sh
-        curl -sSL -o get-poetry.py "$POETRY_URL"
-        python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
-        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-    - name: Install dependencies
-      run: poetry install --no-interaction
-    - name: Set up mypy cache
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/mypy
-        key: ${{ runner.os }}-mypy-${{ hashFiles('src/opcua_webhmi_bridge/**/*.py') }}
-        restore-keys: |
-          ${{ runner.os }}-mypy-
-    - name: Check static typing of the main package
-      run: poetry run mypy src/opcua_webhmi_bridge
-    - name: Test with pytest
-      run: poetry run pytest -vv --cov-report=xml
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        flags: unittests
-        fail_ci_if_error: true
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download virtual environment artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: virtual-environment
+      - name: Extract virtual environment
+        run: |
+          tar -xf virtual-environment.tar
+          rm virtual-environment.tar
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - name: Set up mypy cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/mypy
+          key: ${{ runner.os }}-mypy-${{ hashFiles('src/opcua_webhmi_bridge/**/*.py') }}
+          restore-keys: |
+            ${{ runner.os }}-mypy-
+      - name: Test with pytest
+        run: pytest -vv --cov-report=xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests
+          fail_ci_if_error: true
   docker-tag-format:
     name: Check tag format
     runs-on: ubuntu-latest
