@@ -13,16 +13,6 @@
       ],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "python-poetry/poetry"
-    },
-    {
-      "fileMatch": [
-        "^\\.pre-commit-config\\.yaml$"
-      ],
-      "matchStrings": [
-        "- (?<depName>[\\w-]+) ?(?<currentValue>[=!~<>]+.*)\\s+# renovate: follow"
-      ],
-      "datasourceTemplate": "pypi",
-      "versioningTemplate": "pep440"
     }
   ]
 }
