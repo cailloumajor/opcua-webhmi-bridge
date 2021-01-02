@@ -68,9 +68,12 @@ jobs:
         run: |
           tar -xf virtual-environment.tar
           rm virtual-environment.tar
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - uses: pre-commit/action@v2.0.0
         env:
           SKIP: mypy
+      - name: Check static typing of the main package
+        run: mypy src/opcua_webhmi_bridge
   tests:
     name: Tests and code coverage
     runs-on: ubuntu-latest
@@ -98,8 +101,6 @@ jobs:
           key: ${{ runner.os }}-mypy-${{ hashFiles('src/opcua_webhmi_bridge/**/*.py') }}
           restore-keys: |
             ${{ runner.os }}-mypy-
-      - name: Check static typing of the main package
-        run: mypy src/opcua_webhmi_bridge
       - name: Test with pytest
         run: pytest -vv --cov-report=xml
       - name: Upload coverage to Codecov
