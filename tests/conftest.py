@@ -50,6 +50,9 @@ def pytest_collection_modifyitems(
         rel_path = Path(item.fspath).relative_to(config.rootpath / "tests")
         if rel_path.parts[0] == "integration":
             item.add_marker(INTEGRATION_MARKER)
+            cov = config.pluginmanager.get_plugin("_cov")
+            if not config.option.only_integration and cov:
+                item.add_marker(pytest.mark.no_cover)
 
     items.sort(key=_sorting_key)
 
