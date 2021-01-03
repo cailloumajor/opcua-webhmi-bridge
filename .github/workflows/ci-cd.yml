@@ -85,8 +85,8 @@ jobs:
             ${{ runner.os }}-mypy-
       - name: Check static typing of the main package
         run: mypy src/opcua_webhmi_bridge
-  tests:
-    name: Tests and code coverage
+  unit-tests:
+    name: Unit tests and code coverage
     runs-on: ubuntu-latest
     needs:
       - virtual-env
@@ -112,12 +112,35 @@ jobs:
         with:
           flags: unittests
           fail_ci_if_error: true
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs:
+      - virtual-env
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download virtual environment artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: virtual-environment
+      - name: Extract virtual environment
+        run: |
+          tar -xf virtual-environment.tar
+          rm virtual-environment.tar
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - name: Run integration tests
+        run: pytest -vv --only-integration
   docker-tag-format:
     name: Check tag format
     runs-on: ubuntu-latest
     needs:
       - code-quality
-      - tests
+      - unit-tests
+      - integration-tests
     if: startsWith(github.ref, 'refs/tags/')
     outputs:
       match: ${{ steps.check-tag.outputs.match }}

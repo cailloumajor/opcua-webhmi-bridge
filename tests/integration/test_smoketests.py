@@ -7,8 +7,6 @@ import pytest
 import toml
 from _pytest.fixtures import FixtureRequest
 
-COMMAND = "opcua-agent"
-
 if TYPE_CHECKING:
     MainProcessFixture = Callable[[List[str]], Popen[str]]
 
