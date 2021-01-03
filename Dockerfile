@@ -2,7 +2,7 @@ FROM python:3.8 as builder
 
 ENV PYTHONUNBUFFERED 1
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
 
 COPY poetry_install_vars.sh /usr/local/lib
 # hadolint ignore=SC1091
