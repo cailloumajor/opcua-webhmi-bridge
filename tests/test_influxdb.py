@@ -8,7 +8,12 @@ from pytest import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
 
-from opcua_webhmi_bridge.influxdb import InfluxDBWriter, flatten, to_influx
+from opcua_webhmi_bridge.influxdb import (
+    InfluxDBWriter,
+    UnexpextedScalarError,
+    flatten,
+    to_influx,
+)
 
 LogRecordsType = Callable[[], List[logging.LogRecord]]
 
@@ -89,6 +94,18 @@ class TestFlatten:
 
 @pytest.mark.usefixtures("patch_flatten")
 class TestToInflux:
+    @pytest.mark.parametrize("payload", ["string", 42, 5.4, True, None])
+    def test_scalar_payload(self, mocker: MockerFixture, payload: Any) -> None:
+        message = mocker.Mock(node_id="ScalarNode", payload=payload)
+        with pytest.raises(UnexpextedScalarError, match=r"ScalarNode"):
+            to_influx(message)
+
+    def test_scalar_array_payload(self, mocker: MockerFixture) -> None:
+        data = [1, 2, 3]
+        message = mocker.Mock(node_id="ScalarArrayNode", payload=data)
+        with pytest.raises(UnexpextedScalarError, match=r"ScalarArrayNode"):
+            to_influx(message)
+
     def test_list_payload(self, mocker: MockerFixture) -> None:
         data = [{"field1": 5.6, "field2": True}, {"field1": "ab cd", "field2": 42}]
         message = mocker.Mock(node_id='"list"."node"', payload=data)

@@ -5,7 +5,12 @@ import json
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Any, Dict, List, Union
 
-DataChangePayload = Union[List[Dict[str, Any]], Dict[str, Any]]
+JsonScalar = Union[str, int, float, bool, None]
+DataChangePayload = Union[
+    Dict[str, Any],
+    List[Union[Dict[str, Any], JsonScalar]],
+    JsonScalar,
+]
 
 
 class MessageType(str, enum.Enum):

@@ -22,6 +22,22 @@ Flattened = Dict[str, JsonScalar]
 _logger = logging.getLogger(__name__)
 
 
+class UnexpextedScalarError(ValueError):
+    """Unexpected scalar exception.
+
+    Raised when a scalar in a node is found out of a structure.
+    """
+
+    def __init__(self, node_id: str):
+        """Initializes unexpected scalar exception.
+
+        Args:
+            node_id: ID of the node containing unexpected scalar.
+        """
+        msg = f"`{node_id}` node: scalar found out of a structure"
+        super().__init__(msg)
+
+
 class InfluxDBWriteError(ClientError):
     """InfluxDB write error exception."""
 
@@ -96,9 +112,13 @@ def to_influx(message: OPCDataChangeMessage) -> str:
     if isinstance(message.payload, list):
         index_tag = measurement.split(".")[-1] + "_index"
         for index, elem in enumerate(message.payload):
+            if not isinstance(elem, dict):
+                raise UnexpextedScalarError(message.node_id)
             points.append(InfluxPoint({index_tag: str(index)}, flatten(elem)))
-    else:
+    elif isinstance(message.payload, dict):
         points.append(InfluxPoint({}, flatten(message.payload)))
+    else:
+        raise UnexpextedScalarError(message.node_id)
     for point in points:
         line = measurement
         if point.tags:
