@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 import time
 from pathlib import Path
-from subprocess import STDOUT, Popen
-from typing import TYPE_CHECKING, Callable, Dict, Generator, List
+from typing import Dict, Generator, List, Optional, Protocol
 
 import pytest
 import requests
@@ -12,8 +12,14 @@ import toml
 from _pytest.fixtures import FixtureRequest
 from yarl import URL
 
-if TYPE_CHECKING:
-    MainProcessFixture = Callable[[List[str]], Popen[str]]
+
+class MainProcessFixture(Protocol):
+    def __call__(
+        self,
+        args: List[str],  # noqa: U100
+        env: Optional[Dict[str, str]] = None,  # noqa: U100
+    ) -> subprocess.Popen[str]:
+        ...
 
 
 OPC_SERVER_HTTP_PORT = 8000
@@ -31,9 +37,11 @@ def console_script(request: FixtureRequest) -> str:
 
 @pytest.fixture
 def main_process(console_script: str) -> MainProcessFixture:
-    def _inner(args: List[str]) -> Popen[str]:
+    def _inner(
+        args: List[str], env: Optional[Dict[str, str]] = None
+    ) -> subprocess.Popen[str]:
         args = [console_script] + args
-        return Popen(args, text=True)
+        return subprocess.Popen(args, env=env, text=True)
 
     return _inner
 
@@ -42,10 +50,10 @@ class OPCServer:
     def __init__(self) -> None:
         mydir = Path(__file__).resolve().parent
         self.log_file = open(mydir / "opc_server.log", "w")
-        self.process = Popen(
+        self.process = subprocess.Popen(
             [sys.executable, str(mydir / "opc_server.py"), str(OPC_SERVER_HTTP_PORT)],
             stdout=self.log_file,
-            stderr=STDOUT,
+            stderr=subprocess.STDOUT,
         )
         assert not self.ping(), "OPC-UA testing server already started"
 
