@@ -1,14 +1,22 @@
 from __future__ import annotations
 
-from subprocess import Popen
-from typing import TYPE_CHECKING, Callable, Dict, List
+import sys
+import time
+from pathlib import Path
+from subprocess import STDOUT, Popen
+from typing import TYPE_CHECKING, Callable, Dict, Generator, List
 
 import pytest
+import requests
 import toml
 from _pytest.fixtures import FixtureRequest
+from yarl import URL
 
 if TYPE_CHECKING:
     MainProcessFixture = Callable[[List[str]], Popen[str]]
+
+
+OPC_SERVER_HTTP_PORT = 8000
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +36,54 @@ def main_process(console_script: str) -> MainProcessFixture:
         return Popen(args, text=True)
 
     return _inner
+
+
+class OPCServer:
+    def __init__(self) -> None:
+        mydir = Path(__file__).resolve().parent
+        self.log_file = open(mydir / "opc_server.log", "w")
+        self.process = Popen(
+            [sys.executable, str(mydir / "opc_server.py"), str(OPC_SERVER_HTTP_PORT)],
+            stdout=self.log_file,
+            stderr=STDOUT,
+        )
+        assert not self.ping(), "OPC-UA testing server already started"
+
+    def _url(self, endpoint: str) -> str:
+        root_url = URL.build(scheme="http", host="127.0.0.1", port=OPC_SERVER_HTTP_PORT)
+        return str(root_url / endpoint)
+
+    @property
+    def ping_url(self) -> str:
+        return self._url("ping")
+
+    @property
+    def api_url(self) -> str:
+        return self._url("api")
+
+    def ping(self) -> bool:
+        try:
+            resp = requests.get(self.ping_url)
+            resp.raise_for_status()
+        except requests.RequestException:
+            return False
+        else:
+            return True
+
+    def reset(self) -> None:
+        resp = requests.delete(self.api_url)
+        resp.raise_for_status()
+
+
+@pytest.fixture(scope="session")
+def opcserver() -> Generator[OPCServer, None, None]:
+    opc_server = OPCServer()
+    while not opc_server.ping():
+        time.sleep(0.1)
+    yield opc_server
+    opc_server.process.terminate()
+    opc_server.process.wait()
+    opc_server.log_file.close()
 
 
 def test_entrypoint(main_process: MainProcessFixture) -> None:
