@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import time
@@ -40,6 +41,8 @@ def main_process(console_script: str) -> MainProcessFixture:
         args: List[str], env: Optional[Dict[str, str]] = None
     ) -> subprocess.Popen[str]:
         args = [console_script] + args
+        if env is not None:
+            env = dict(os.environ, **env)
         return subprocess.Popen(args, env=env, text=True)
 
     return _inner
