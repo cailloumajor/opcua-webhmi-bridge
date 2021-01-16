@@ -12,6 +12,8 @@ import toml
 from _pytest.fixtures import FixtureRequest
 from yarl import URL
 
+OPC_SERVER_HTTP_PORT = 8000
+
 
 class MainProcessFixture(Protocol):
     def __call__(
@@ -20,9 +22,6 @@ class MainProcessFixture(Protocol):
         env: Optional[Dict[str, str]] = None,  # noqa: U100
     ) -> subprocess.Popen[str]:
         ...
-
-
-OPC_SERVER_HTTP_PORT = 8000
 
 
 @pytest.fixture(scope="session")
@@ -92,8 +91,3 @@ def opcserver() -> Generator[OPCServer, None, None]:
     opc_server.process.terminate()
     opc_server.process.wait()
     opc_server.log_file.close()
-
-
-def test_entrypoint(main_process: MainProcessFixture) -> None:
-    process = main_process(["--help"])
-    assert process.wait(timeout=5.0) == 0
