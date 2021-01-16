@@ -1,11 +1,27 @@
-from pathlib import Path
-from typing import List
+from __future__ import annotations
 
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List
+
+import pytest
 from _pytest.config import Config
 from _pytest.main import Session
 from _pytest.nodes import Item
 
 INTEGRATION_MARKER = "integration"
+
+MANDATORY_ENV_ARGS = {
+    "CENTRIFUGO_API_KEY": "key",
+    "INFLUX_DB_NAME": "db",
+    "OPC_SERVER_URL": "opc.tcp://localhost:4840",
+    "OPC_MONITOR_NODES": '["node1", "node2"]',
+    "OPC_RECORD_NODES": '["node3", "node4"]',
+}
+
+if TYPE_CHECKING:
+
+    class FixtureRequest:
+        param: str
 
 
 def _sorting_key(item: Item) -> int:
@@ -31,3 +47,13 @@ def pytest_collection_modifyitems(
             item.add_marker(INTEGRATION_MARKER)
 
     items.sort(key=_sorting_key)
+
+
+@pytest.fixture
+def mandatory_env_args() -> Dict[str, str]:
+    return MANDATORY_ENV_ARGS
+
+
+@pytest.fixture(params=MANDATORY_ENV_ARGS.keys())
+def mandatory_env_args_keys(request: FixtureRequest) -> str:
+    return request.param
