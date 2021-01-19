@@ -52,6 +52,9 @@ class OPCServer:
     def __init__(self) -> None:
         mydir = Path(__file__).resolve().parent
         self.log_file = open(mydir / "opc_server.log", "w")
+        self.root_url = URL.build(
+            scheme="http", host="127.0.0.1", port=OPC_SERVER_HTTP_PORT
+        )
         self.process = subprocess.Popen(
             [sys.executable, str(mydir / "opc_server.py"), str(OPC_SERVER_HTTP_PORT)],
             stdout=self.log_file,
@@ -60,20 +63,11 @@ class OPCServer:
         assert not self.ping(), "OPC-UA testing server already started"
 
     def _url(self, endpoint: str) -> str:
-        root_url = URL.build(scheme="http", host="127.0.0.1", port=OPC_SERVER_HTTP_PORT)
-        return str(root_url / endpoint)
-
-    @property
-    def ping_url(self) -> str:
-        return self._url("ping")
-
-    @property
-    def api_url(self) -> str:
-        return self._url("api")
+        return str(self.root_url / endpoint)
 
     def ping(self) -> bool:
         try:
-            resp = requests.get(self.ping_url)
+            resp = requests.get(self._url("ping"))
             resp.raise_for_status()
         except requests.RequestException:
             return False
@@ -81,7 +75,7 @@ class OPCServer:
             return True
 
     def reset(self) -> None:
-        resp = requests.delete(self.api_url)
+        resp = requests.delete(self._url("api"))
         resp.raise_for_status()
 
 
