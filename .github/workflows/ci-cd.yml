@@ -137,8 +137,8 @@ jobs:
       - name: Upload testing OPC-UA server log
         uses: actions/upload-artifact@v2
         with:
-          name: test-opc-server-log
-          path: tests/integration/opc_server.log
+          name: integration-tests-logs
+          path: tests/integration/*.log
   docker-tag-format:
     name: Check tag format
     runs-on: ubuntu-latest
