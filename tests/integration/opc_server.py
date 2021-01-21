@@ -95,7 +95,10 @@ class TestOpcServer:
 
 
 def main(http_port: int) -> None:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        level=logging.INFO,
+    )
     test_opc_server = TestOpcServer()
     asyncio.get_event_loop().run_until_complete(test_opc_server.run(http_port))
 
