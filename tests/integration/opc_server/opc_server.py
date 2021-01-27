@@ -8,7 +8,7 @@ from asyncua import ua
 from asyncua.common.type_dictionary_buider import DataTypeDictionaryBuilder
 from asyncua.ua.uatypes import NodeId
 
-from opcua_webhmi_bridge.opcua import SIMATIC_NAMESPACE_URI
+NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
 class TestOpcServer:
@@ -20,13 +20,6 @@ class TestOpcServer:
         request: web.Request,  # noqa: U100
     ) -> web.Response:
         return web.Response(text="PONG")
-
-    async def api_delete_handler(
-        self,
-        request: web.Request,  # noqa: U100
-    ) -> web.Response:
-        await self.reset_opc_data()
-        return web.Response()
 
     async def reset_opc_data(self) -> None:
         var = ua.MonitoredStructure()
@@ -44,10 +37,10 @@ class TestOpcServer:
     async def run(self, http_port: int) -> None:
         await self.opc_server.init()
 
-        idx = await self.opc_server.register_namespace(SIMATIC_NAMESPACE_URI)
+        idx = await self.opc_server.register_namespace(NAMESPACE_URI)
 
         dict_builder = DataTypeDictionaryBuilder(
-            self.opc_server, idx, SIMATIC_NAMESPACE_URI, "SimaticStructures"
+            self.opc_server, idx, NAMESPACE_URI, "SimaticStructures"
         )
         await dict_builder.init()
 
@@ -82,7 +75,6 @@ class TestOpcServer:
         app.add_routes(
             [
                 web.get("/ping", self.ping_handler),
-                web.delete("/api", self.api_delete_handler),
             ]
         )
         runner = web.AppRunner(app)

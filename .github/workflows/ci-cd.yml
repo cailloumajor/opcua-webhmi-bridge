@@ -115,30 +115,10 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
-    needs:
-      - virtual-env
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Download virtual environment artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: virtual-environment
-      - name: Extract virtual environment
-        run: |
-          tar -xf virtual-environment.tar
-          rm virtual-environment.tar
-          echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - name: Run integration tests
-        run: pytest -vv --only-integration
-      - name: Upload testing OPC-UA server log
-        uses: actions/upload-artifact@v2
-        with:
-          name: integration-tests-logs
-          path: tests/integration/*.log
+        run: docker-compose -f tests/integration/docker-compose.yml run --rm integration-tests
   docker-tag-format:
     name: Check tag format
     runs-on: ubuntu-latest

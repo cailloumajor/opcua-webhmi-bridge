@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  integration-tests:
+    build:
+      context: ../..
+      target: builder
+    command:
+      - /bin/bash
+      - -c
+      - |
+        . .venv/bin/activate
+        poetry install --no-interaction
+        poetry run pytest --no-cov tests/integration
+    depends_on:
+      - opc-server
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    init: true
+    volumes:
+      - ..:/app/tests:ro
+
+  opc-server:
+    build: ./opc_server
