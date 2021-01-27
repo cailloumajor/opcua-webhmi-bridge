@@ -19,5 +19,8 @@
         "--settings-path=${workspaceFolder}"
     ],
     "python.sortImports.path": "${workspaceFolder}/.venv/bin/isort",
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "--ignore=tests/integration"
+    ]
 }
