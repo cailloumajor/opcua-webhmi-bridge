@@ -12,6 +12,7 @@ from _pytest.fixtures import FixtureRequest
 from yarl import URL
 
 OPC_SERVER_HOST = "opc-server"
+OPC_SERVER_HTTP_PORT = 8080
 
 
 class MainProcessFixture(Protocol):
@@ -48,7 +49,7 @@ def main_process(console_script: str) -> MainProcessFixture:
 
 class OPCServer:
     def __init__(self) -> None:
-        self.root_url = URL(f"http://{OPC_SERVER_HOST}")
+        self.root_url = URL(f"http://{OPC_SERVER_HOST}:{OPC_SERVER_HTTP_PORT}")
 
     def _url(self, endpoint: str) -> str:
         return str(self.root_url / endpoint)

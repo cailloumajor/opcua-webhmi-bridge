@@ -18,6 +18,6 @@ RUN python -m venv .venv \
     && pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 4840
-EXPOSE 80
+EXPOSE 8080
 
-CMD [".venv/bin/python", "opc_server.py", "80"]
+CMD [".venv/bin/python", "opc_server.py", "8080"]
