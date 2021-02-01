@@ -13,7 +13,7 @@ services:
         python /tmp/get-poetry.py --yes --no-modify-path --version="$$POETRY_VERSION"
         . "$$HOME/.poetry/env"
         poetry install --no-interaction
-        poetry run pytest -o cache_dir=/pytest-cache --no-cov --only-integration
+        poetry run pytest --no-cov --only-integration
     depends_on:
       - opc-server
     environment:

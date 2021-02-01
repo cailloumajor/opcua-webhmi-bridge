@@ -27,9 +27,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pypoetry/cache
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          key: ${{ runner.os }}-virtualenv-poetry-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-
+            ${{ runner.os }}-virtualenv-poetry-
       - name: Install Poetry
         run: |
           source poetry_install_vars.sh
@@ -113,6 +113,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Poetry cache for Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: tests/integration/.cache/poetry
+          key: ${{ runner.os }}-integration-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-integration-poetry-
       - name: Run integration tests
         run: docker-compose -f tests/integration/docker-compose.yml up --exit-code-from=integration-tests
   docker-tag-format:
