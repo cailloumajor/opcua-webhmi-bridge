@@ -23,30 +23,34 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Set up Poetry cache for Python dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pypoetry/cache
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-      - name: Install Poetry
+      - name: Get Poetry version to install
+        id: poetry-version
         run: |
           source poetry_install_vars.sh
-          curl -sSL -o get-poetry.py "$POETRY_URL"
-          python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
-          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-          echo "POETRY_VIRTUALENVS_IN_PROJECT=true" >> $GITHUB_ENV
+          echo "::set-output name=version::$POETRY_VERSION"
+      - name: Install Poetry ${{ steps.poetry-version.outputs.version }}
+        uses: Gr1N/setup-poetry@v4
+        with:
+          poetry-version: ${{ steps.poetry-version.outputs.version }}
+      - name: Set up Poetry cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
       - name: Install dependencies
         run: poetry install --no-interaction
+        env:
+          POETRY_VIRTUALENVS_IN_PROJECT: "true"
       # Archive virtual environment to keep file permissions
-      - name: Make a TAR archive of virtual environment
-        run: tar -cf virtual-environment.tar .venv/
+      - name: Archive virtual environment
+        run: tar -acf /tmp/virtual-environment.tar.zst .venv/
       - name: Upload virtual environment artifact
         uses: actions/upload-artifact@v2
         with:
           name: virtual-environment
-          path: virtual-environment.tar
+          path: /tmp/virtual-environment.tar.zst
           if-no-files-found: error
           retention-days: 1
   code-quality:
@@ -64,10 +68,10 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: virtual-environment
+          path: /tmp
       - name: Extract virtual environment
         run: |
-          tar -xf virtual-environment.tar
-          rm virtual-environment.tar
+          tar -xf /tmp/virtual-environment.tar.zst
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - uses: pre-commit/action@v2.0.0
         env:
@@ -96,10 +100,10 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: virtual-environment
+          path: /tmp
       - name: Extract virtual environment
         run: |
-          tar -xf virtual-environment.tar
-          rm virtual-environment.tar
+          tar -xf /tmp/virtual-environment.tar.zst
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - name: Test with pytest
         run: pytest -vv --cov-report=xml
