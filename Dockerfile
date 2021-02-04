@@ -1,4 +1,4 @@
-FROM python:3.8 as builder
+FROM python:3.8-buster as builder
 
 ENV PYTHONUNBUFFERED 1
 
@@ -20,7 +20,7 @@ RUN python -m venv .venv \
     && . .venv/bin/activate \
     && "$HOME"/.poetry/bin/poetry install --no-dev --no-interaction
 
-FROM python:3.8-slim
+FROM python:3.8-slim-buster
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
 LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua_webhmi_bridge
