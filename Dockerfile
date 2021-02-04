@@ -18,12 +18,12 @@ COPY poetry.lock pyproject.toml ./
 # hadolint ignore=SC1091
 RUN python -m venv .venv \
     && . .venv/bin/activate \
-    && poetry install --no-dev --no-interaction --no-root
+    && poetry install --no-ansi --no-dev --no-interaction --no-root
 
 COPY src ./src
 # hadolint ignore=SC1091
 RUN . .venv/bin/activate \
-    && poetry install --no-dev --no-interaction
+    && poetry install --no-ansi --no-dev --no-interaction
 
 FROM python:3.8-slim-buster
 
