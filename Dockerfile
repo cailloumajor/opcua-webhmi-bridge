@@ -1,24 +1,29 @@
 FROM python:3.8-buster as builder
 
-ENV PYTHONUNBUFFERED 1
-
 SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
+
+ENV PYTHONUNBUFFERED=1 \
+    POETRY_HOME=/opt/poetry
 
 COPY poetry_install_vars.sh /usr/local/lib
 # hadolint ignore=SC1091
-RUN source /usr/local/lib/poetry_install_vars.sh \
+RUN . /usr/local/lib/poetry_install_vars.sh \
     && curl -sSL -o get-poetry.py "$POETRY_URL" \
     && python get-poetry.py --yes --no-modify-path --version="$POETRY_VERSION"
+ENV PATH="${POETRY_HOME}/bin:$PATH"
 
 WORKDIR /app
 
-COPY src ./src
 COPY poetry.lock pyproject.toml ./
-
 # hadolint ignore=SC1091
 RUN python -m venv .venv \
     && . .venv/bin/activate \
-    && "$HOME"/.poetry/bin/poetry install --no-dev --no-interaction
+    && poetry install --no-dev --no-interaction --no-root
+
+COPY src ./src
+# hadolint ignore=SC1091
+RUN . .venv/bin/activate \
+    && poetry install --no-dev --no-interaction
 
 FROM python:3.8-slim-buster
 
