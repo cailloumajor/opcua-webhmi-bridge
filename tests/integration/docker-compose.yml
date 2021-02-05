@@ -11,7 +11,7 @@ services:
       - |
         . .venv/bin/activate
         poetry install --no-interaction
-        poetry run pytest --no-cov tests/integration
+        poetry run pytest -vv --no-cov tests/integration
     depends_on:
       - opc-server
     environment:
