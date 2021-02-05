@@ -63,10 +63,15 @@ class OPCServer:
         else:
             return True
 
+    def reset(self) -> None:
+        resp = requests.delete(self._url("api"))
+        resp.raise_for_status()
 
-@pytest.fixture(scope="session")
+
+@pytest.fixture()
 def opcserver() -> OPCServer:
     opc_server = OPCServer()
     while not opc_server.ping():
         time.sleep(0.1)
+    opc_server.reset()
     return opc_server

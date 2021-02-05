@@ -21,6 +21,13 @@ class TestOpcServer:
     ) -> web.Response:
         return web.Response(text="PONG")
 
+    async def api_delete_handler(
+        self,
+        request: web.Request,  # noqa: U100
+    ) -> web.Response:
+        await self.reset_opc_data()
+        return web.Response()
+
     async def reset_opc_data(self) -> None:
         var = ua.MonitoredStructure()
         var.Name = "A name"
@@ -75,6 +82,7 @@ class TestOpcServer:
         app.add_routes(
             [
                 web.get("/ping", self.ping_handler),
+                web.delete("/api", self.api_delete_handler),
             ]
         )
         runner = web.AppRunner(app)
