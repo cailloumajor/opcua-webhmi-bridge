@@ -119,6 +119,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run integration tests
         run: docker-compose -f tests/integration/docker-compose.yml run --rm integration-tests
+      - name: Print logs of services
+        run: docker-compose -f tests/integration/docker-compose.yml logs
   docker-tag-format:
     name: Check tag format
     runs-on: ubuntu-latest
