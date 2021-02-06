@@ -8,7 +8,7 @@ import pytest
 import requests
 from yarl import URL
 
-from .conftest import OPC_SERVER_HOST, MainProcessFixture, OPCServer
+from .conftest import MainProcessFixture, OPCServer
 
 INFLUXDB_HOST = "influxdb"
 INFLUXDB_DB = "test_bucket"
@@ -71,9 +71,6 @@ def test_smoketest(
         mandatory_env_args,
         INFLUX_DB_NAME=INFLUXDB_DB,
         INFLUX_ROOT_URL=str(influxdb.root_url),
-        OPC_SERVER_URL=f"opc.tcp://{OPC_SERVER_HOST}:4840",
-        OPC_MONITOR_NODES='["Monitored"]',
-        OPC_RECORD_NODES='["Recorded"]',
     )
     process = main_process([], envargs)
     start_time = datetime.now()

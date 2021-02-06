@@ -15,6 +15,16 @@ OPC_SERVER_HOST = "opc-server"
 OPC_SERVER_HTTP_PORT = 8080
 
 
+@pytest.fixture
+def mandatory_env_args(mandatory_env_args: Dict[str, str]) -> Dict[str, str]:
+    return dict(
+        mandatory_env_args,
+        OPC_SERVER_URL=f"opc.tcp://{OPC_SERVER_HOST}:4840",
+        OPC_MONITOR_NODES='["Monitored"]',
+        OPC_RECORD_NODES='["Recorded"]',
+    )
+
+
 class MainProcessFixture(Protocol):
     def __call__(
         self,
