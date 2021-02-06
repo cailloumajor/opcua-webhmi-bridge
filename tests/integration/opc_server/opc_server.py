@@ -28,6 +28,33 @@ class TestOpcServer:
         await self.reset_opc_data()
         return web.Response()
 
+    async def change_node_handler(self, request: web.Request) -> web.Response:
+        request_kind = request.query["kind"]
+        if request_kind == "monitored":
+            var = ua.MonitoredStructure()
+            var.Name = "A changed name"
+            var.Id = 84
+            await self.monitored_var.write_value(var)
+        elif request_kind == "recorded":
+            vars = []
+            for index in range(2):
+                var = ua.RecordedStructure()
+                var.Age = [67, 12][index]
+                var.Active = [False, True][index]
+                vars.append(var)
+            await self.recorded_var.write_value(vars)
+        else:
+            raise web.HTTPBadRequest(reason="Unknown kind parameter")
+        return web.Response()
+
+    async def get_subscriptions_handler(
+        self,
+        request: web.Request,  # noqa: U100
+    ) -> web.Response:
+        return web.json_response(
+            list(self.opc_server.iserver.subscription_service.subscriptions)
+        )
+
     async def reset_opc_data(self) -> None:
         var = ua.MonitoredStructure()
         var.Name = "A name"
@@ -83,6 +110,8 @@ class TestOpcServer:
             [
                 web.get("/ping", self.ping_handler),
                 web.delete("/api", self.api_delete_handler),
+                web.post("/api/node", self.change_node_handler),
+                web.get("/api/subscriptions", self.get_subscriptions_handler),
             ]
         )
         runner = web.AppRunner(app)

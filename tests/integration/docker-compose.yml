@@ -13,6 +13,7 @@ services:
         poetry install --no-interaction
         poetry run pytest -vv --no-cov tests/integration
     depends_on:
+      - influxdb
       - opc-server
     environment:
       - PYTHONDONTWRITEBYTECODE=1
@@ -23,3 +24,7 @@ services:
 
   opc-server:
     build: ./opc_server
+
+  influxdb:
+    image: influxdb:1.8
+    tty: true

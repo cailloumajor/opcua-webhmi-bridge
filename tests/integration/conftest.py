@@ -67,6 +67,14 @@ class OPCServer:
         resp = requests.delete(self._url("api"))
         resp.raise_for_status()
 
+    def change_node(self, kind: str) -> None:
+        resp = requests.post(self._url("api/node"), params={"kind": kind})
+        resp.raise_for_status()
+
+    def has_subscriptions(self) -> bool:
+        resp = requests.get(self._url("api/subscriptions"))
+        return bool(resp.json())
+
 
 @pytest.fixture()
 def opcserver() -> OPCServer:
