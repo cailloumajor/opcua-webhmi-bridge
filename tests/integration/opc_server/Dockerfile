@@ -2,7 +2,7 @@ FROM python:3.8-slim
 
 ENV PYTHONUNBUFFERED 1
 
-SHELL ["/bin/bash", "-Eeuxo", "pipefail", "-c"]
+SHELL ["/bin/bash", "-Eeuv", "-o", "pipefail", "-c"]
 
 RUN useradd --user-group --system --create-home --no-log-init pythonapp \
     && mkdir /app \
