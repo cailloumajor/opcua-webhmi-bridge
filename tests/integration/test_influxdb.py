@@ -92,9 +92,9 @@ def test_smoketest(
     lines = influxdb.query(
         InfluxDBQuery("GET", 'SELECT * FROM "Recorded"', db=INFLUXDB_DB)
     )
+    assert len(lines) == 2
     for i in range(2):
-        line = lines[i]
-        assert line["Recorded_index"] == str(i)
+        line = next(line for line in lines if line["Recorded_index"] == str(i))
         assert line["Active"] == ["false", "true"][i]
         assert line["Age"] == ["67", "12"][i]
     process.terminate()
