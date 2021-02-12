@@ -118,7 +118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run integration tests
-        run: docker-compose -f tests/integration/docker-compose.yml run --rm integration-tests
+        run: docker-compose -f tests/integration/docker-compose.yml run --rm --use-aliases integration-tests
       - name: Print logs of services
         run: docker-compose -f tests/integration/docker-compose.yml logs
   docker-tag-format:
