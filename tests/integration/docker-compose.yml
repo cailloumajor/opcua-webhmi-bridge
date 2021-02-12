@@ -4,14 +4,20 @@ services:
   integration-tests:
     build:
       context: ../..
-      target: builder
     command:
       - /bin/bash
       - -c
       - |
         . .venv/bin/activate
-        poetry install --no-interaction
-        poetry run pytest -vv --no-cov tests/integration
+        pip install micropipenv[toml]
+        pip install -r <(micropipenv requirements \
+          --method poetry \
+          --no-hashes \
+          --no-default \
+          --no-comments \
+          --no-indexes \
+          | grep -E '(pytest|requests|websocket-client|yarl)=')
+        pytest -vv tests/integration
     depends_on:
       - influxdb
       - opc-server
