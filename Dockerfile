@@ -1,4 +1,4 @@
-FROM python:3.8-buster as builder
+FROM python:3.8.7-buster as builder
 
 SHELL ["/bin/bash", "-Eeuv", "-o", "pipefail", "-c"]
 
@@ -25,7 +25,7 @@ COPY src ./src
 RUN . .venv/bin/activate \
     && poetry install --no-ansi --no-dev --no-interaction
 
-FROM python:3.8-slim-buster
+FROM python:3.8.7-slim-buster
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
 LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua_webhmi_bridge
