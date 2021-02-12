@@ -3,12 +3,10 @@ from __future__ import annotations
 import os
 import subprocess
 import time
-from typing import Dict, List, Optional, Protocol
+from typing import Dict, Generator, List, Optional, Protocol
 
 import pytest
 import requests
-import toml
-from _pytest.fixtures import FixtureRequest
 from yarl import URL
 
 OPC_SERVER_HOST = "opc-server"
@@ -34,27 +32,25 @@ class MainProcessFixture(Protocol):
         ...
 
 
-@pytest.fixture(scope="session")
-def console_script(request: FixtureRequest) -> str:
-    pyproject = toml.load(request.config.rootpath / "pyproject.toml")
-    scripts: Dict[str, str] = pyproject["tool"]["poetry"]["scripts"]
-    for script, function in scripts.items():
-        if "main:app" in function:
-            return script
-    raise ValueError("Console script not found in pyproject.toml")
-
-
 @pytest.fixture
-def main_process(console_script: str) -> MainProcessFixture:
+def main_process() -> Generator[MainProcessFixture, None, None]:
+    sentinel: List[subprocess.Popen[str]] = []
+
     def _inner(
         args: List[str], env: Optional[Dict[str, str]] = None
     ) -> subprocess.Popen[str]:
-        args = [console_script] + args
+        args = ["opcua-agent"] + args
         if env is not None:
             env = dict(os.environ, **env)
-        return subprocess.Popen(args, env=env, text=True)
+        process = subprocess.Popen(args, env=env, text=True)
+        sentinel.append(process)
+        return process
 
-    return _inner
+    yield _inner
+
+    for process in sentinel:
+        process.terminate()
+        process.wait(timeout=5.0)
 
 
 class OPCServer:

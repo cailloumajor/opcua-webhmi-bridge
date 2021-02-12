@@ -23,5 +23,3 @@ def test_runs_with_mandatory_args(
     process = main_process([], mandatory_env_args)
     with pytest.raises(subprocess.TimeoutExpired):
         process.wait(timeout=1.0)
-    process.terminate()
-    assert process.wait(timeout=5.0) == 0

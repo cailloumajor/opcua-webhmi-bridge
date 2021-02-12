@@ -97,5 +97,3 @@ def test_smoketest(
         line = next(line for line in lines if line["Recorded_index"] == str(i))
         assert line["Active"] == ["false", "true"][i]
         assert line["Age"] == ["67", "12"][i]
-    process.terminate()
-    process.wait(timeout=5.0)
