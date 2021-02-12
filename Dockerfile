@@ -28,7 +28,7 @@ RUN . .venv/bin/activate \
 FROM python:3.8.7-slim-buster
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
-LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua_webhmi_bridge
+LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua-webhmi-bridge
 
 ENV PYTHONUNBUFFERED 1
 
