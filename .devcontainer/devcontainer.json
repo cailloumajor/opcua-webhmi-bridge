@@ -28,14 +28,15 @@
 		"editorconfig.editorconfig",
 		"ms-azuretools.vscode-docker",
 		"ms-python.python",
-		"ms-python.vscode-pylance"
+		"ms-python.vscode-pylance",
+		"redhat.vscode-yaml"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": ".devcontainer/install-tools.sh && poetry install",
+	"postCreateCommand": [".devcontainer/post-create.sh"],
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"

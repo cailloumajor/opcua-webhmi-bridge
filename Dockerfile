@@ -1,6 +1,6 @@
 FROM python:3.8-buster as builder
 
-SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
+SHELL ["/bin/bash", "-Eeuv", "-o", "pipefail", "-c"]
 
 ENV PYTHONUNBUFFERED=1 \
     POETRY_HOME=/opt/poetry
