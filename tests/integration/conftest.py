@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import time
+from datetime import datetime
 from typing import Dict, Generator, List, Optional, Protocol
 
 import pytest
@@ -85,7 +86,10 @@ class OPCServer:
 @pytest.fixture()
 def opcserver() -> OPCServer:
     opc_server = OPCServer()
+    start_time = datetime.now()
     while not opc_server.ping():
+        elapsed = datetime.now() - start_time
+        assert elapsed.total_seconds() < 10, "Timeout trying to ping OPC-UA server"
         time.sleep(0.1)
     opc_server.reset()
     return opc_server
