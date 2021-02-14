@@ -75,6 +75,7 @@ def centrifugo_client(
     client.client.close()
 
 
+@pytest.mark.usefixtures("opcserver")
 def test_smoketest(
     centrifugo_client: CentrifugoClient,
     centrifugo_server: CentrifugoServer,
