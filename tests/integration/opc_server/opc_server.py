@@ -5,7 +5,7 @@ import typer
 from aiohttp import web
 from asyncua import Server as OpcServer
 from asyncua import ua
-from asyncua.common.type_dictionary_buider import DataTypeDictionaryBuilder
+from asyncua.common.type_dictionary_builder import DataTypeDictionaryBuilder
 from asyncua.ua.uatypes import NodeId
 
 NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
