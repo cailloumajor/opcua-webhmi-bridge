@@ -4,6 +4,7 @@ services:
   integration-tests:
     build:
       context: ../..
+    image: opcua-webhmi-bridge:integration-tests
     command:
       - /bin/bash
       - -c
