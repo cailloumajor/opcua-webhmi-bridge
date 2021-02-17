@@ -105,14 +105,18 @@ def test_smoketest(
         assert elapsed.total_seconds() < 10
         time.sleep(1.0)
         assert process.poll() is None
-    centrifugo_client.subscribe("opc_data_change")
-    centrifugo_client.subscribe("opc_status")
+    centrifugo_client.subscribe("proxied:opc_data_change")
+    centrifugo_client.subscribe("proxied:opc_status")
     centrifugo_client.subscribe("heartbeat")
     start_time = datetime.now()
     while not centrifugo_server.history("heartbeat")["result"]["publications"]:
         elapsed = datetime.now() - start_time
         assert elapsed.total_seconds() < 10
         time.sleep(1.0)
-    assert (
-        len(centrifugo_server.history("opc_data_change")["result"]["publications"]) == 2
-    )
+
+    def publication_length(channel: str) -> int:
+        history = centrifugo_server.history(channel)
+        return len(history["result"]["publications"])
+
+    assert publication_length("proxied:opc_data_change") == 2
+    assert publication_length("proxied:opc_status") == 2
