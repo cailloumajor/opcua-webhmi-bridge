@@ -39,13 +39,7 @@ services:
 
   centrifugo:
     image: centrifugo/centrifugo:v2.6
-    environment:
-      - CENTRIFUGO_V3_USE_OFFSET=true
-      - CENTRIFUGO_API_KEY=apikey
-      - CENTRIFUGO_CLIENT_INSECURE=true
-      - CENTRIFUGO_HEALTH=true
-      - CENTRIFUGO_HISTORY_LIFETIME=60
-      - CENTRIFUGO_HISTORY_SIZE=10
-      - CENTRIFUGO_PROXY_SUBSCRIBE=true
-      - CENTRIFUGO_PROXY_SUBSCRIBE_ENDPOINT=http://integration-tests:8008/centrifugo/subscribe
+    command: centrifugo --config config.toml
     tty: true
+    volumes:
+      - ./centrifugo.toml:/centrifugo/config.toml:ro

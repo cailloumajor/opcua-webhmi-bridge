@@ -24,12 +24,12 @@
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"bungcip.better-toml",
 		"editorconfig.editorconfig",
 		"ms-azuretools.vscode-docker",
 		"ms-python.python",
 		"ms-python.vscode-pylance",
-		"redhat.vscode-yaml"
+		"redhat.vscode-yaml",
+		"tamasfe.even-better-toml"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

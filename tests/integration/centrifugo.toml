@@ -1,0 +1,13 @@
+v3_use_offset = true
+api_key = "apikey"
+client_insecure = true
+health = true
+history_lifetime = 60
+history_size = 10
+proxy_subscribe_endpoint = "http://integration-tests:8008/centrifugo/subscribe"
+
+[[namespaces]]
+name = "proxied"
+history_lifetime = 60
+history_size = 10
+proxy_subscribe = true

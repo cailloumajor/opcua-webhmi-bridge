@@ -16,8 +16,8 @@ DataChangePayload = Union[
 class MessageType(str, enum.Enum):
     """Enumeration of message types."""
 
-    OPC_DATA_CHANGE = "opc_data_change"
-    OPC_STATUS = "opc_status"
+    OPC_DATA_CHANGE = "proxied:opc_data_change"
+    OPC_STATUS = "proxied:opc_status"
     HEARTBEAT = "heartbeat"
 
 

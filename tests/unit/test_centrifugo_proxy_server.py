@@ -111,7 +111,7 @@ class TestCentrifugoSubscribe:
         }
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
         client = await aiohttp_client(server)
-        await client.post("/", json={"channel": "opc_data_change"})
+        await client.post("/", json={"channel": "proxied:opc_data_change"})
         put = cast(MockType, proxy_server._messaging_writer.put)
         expected_calls = [((m,),) for m in messages]
         assert put.call_args_list == expected_calls
@@ -127,7 +127,7 @@ class TestCentrifugoSubscribe:
         proxy_server.last_opc_status = status_message
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
         client = await aiohttp_client(server)
-        await client.post("/", json={"channel": "opc_status"})
+        await client.post("/", json={"channel": "proxied:opc_status"})
         put = cast(MockType, proxy_server._messaging_writer.put)
         put.assert_called_once_with(status_message)
 
