@@ -54,7 +54,7 @@ python-versions = ">=3.5.3"
 
 [[package]]
 name = "asyncua"
-version = "0.9.11"
+version = "0.9.12"
 description = "Pure Python OPC-UA client and server library"
 category = "main"
 optional = false
@@ -798,7 +798,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "3cc19a8f6c7a980df922a931b1e060819f0132bdb1df782036ae48383aa54b71"
+content-hash = "a56e5469862f8da81deb4611185d752fbd8350ec4462a1c7bde9161b6815a6e1"
 
 [metadata.files]
 aiofiles = [
@@ -857,8 +857,8 @@ async-timeout = [
     {file = "async_timeout-3.0.1-py3-none-any.whl", hash = "sha256:4291ca197d287d274d0b6cb5d6f8f8f82d434ed288f962539ff18cc9012f9ea3"},
 ]
 asyncua = [
-    {file = "asyncua-0.9.11-py3-none-any.whl", hash = "sha256:c6447448d32e6340a627254021aac7ec536ecdbfa29d1268c5cf42ccfbc8b86d"},
-    {file = "asyncua-0.9.11.tar.gz", hash = "sha256:ad46d51767f46272c94ba98d04fad9e5e45642ad8e735d0a4ca60c7f3ce12fbd"},
+    {file = "asyncua-0.9.12-py3-none-any.whl", hash = "sha256:8ff11c24fa832943c8c93c44c17f8743a812cf1575ccfa1f2509dfe41da466e1"},
+    {file = "asyncua-0.9.12.tar.gz", hash = "sha256:2f03cf362a4fdcafba171b1d8f24821e038c36a784deefac993441c4e56c2574"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
