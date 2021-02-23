@@ -102,7 +102,9 @@ def test_smoketest(
     start_time = datetime.now()
     while not ping_main_process():
         elapsed = datetime.now() - start_time
-        assert elapsed.total_seconds() < 10
+        assert (
+            elapsed.total_seconds() < 20
+        ), "Timeout waiting for Centrifugo subscribe proxy"
         time.sleep(1.0)
         assert process.poll() is None
     centrifugo_client.subscribe("proxied:opc_data_change")
@@ -111,7 +113,9 @@ def test_smoketest(
     start_time = datetime.now()
     while not centrifugo_server.history("heartbeat")["result"]["publications"]:
         elapsed = datetime.now() - start_time
-        assert elapsed.total_seconds() < 10
+        assert (
+            elapsed.total_seconds() < 10
+        ), "Timeout waiting for heartbeat channel to have publication"
         time.sleep(1.0)
 
     def publication_length(channel: str) -> int:

@@ -76,7 +76,9 @@ def test_smoketest(
     start_time = datetime.now()
     while not opcserver.has_subscriptions():
         elapsed = datetime.now() - start_time
-        assert elapsed.total_seconds() < 10
+        assert (
+            elapsed.total_seconds() < 10
+        ), "Timeout waiting for OPC-UA server to have subscriptions"
         time.sleep(1.0)
         assert process.poll() is None
     opcserver.change_node("recorded")
@@ -84,7 +86,7 @@ def test_smoketest(
     start_time = datetime.now()
     while not lines:
         elapsed = datetime.now() - start_time
-        assert elapsed.total_seconds() < 10
+        assert elapsed.total_seconds() < 10, "Timeout waiting InfluxDB to have series"
         lines = influxdb.query(InfluxDBQuery("GET", "SHOW SERIES", db=INFLUXDB_DB))
         time.sleep(1.0)
     measurements = [line["key"].split(",")[0] for line in lines]
