@@ -10,7 +10,11 @@ RUN useradd --user-group --system --create-home --no-log-init pythonapp \
 USER pythonapp
 WORKDIR /app
 
-COPY opc_server.py requirements.txt ./
+COPY opc_server.py \
+     requirements.txt \
+     test-server-cert.der \
+     test-server-key.pem \
+     ./
 
 # hadolint ignore=SC1091
 RUN python -m venv .venv \

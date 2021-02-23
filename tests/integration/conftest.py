@@ -8,6 +8,7 @@ from typing import Dict, Generator, List, Optional, Protocol
 
 import pytest
 import requests
+from _pytest.fixtures import FixtureRequest
 from yarl import URL
 
 OPC_SERVER_HOST = "opc-server"
@@ -15,10 +16,15 @@ OPC_SERVER_HTTP_PORT = 8080
 
 
 @pytest.fixture
-def mandatory_env_args(mandatory_env_args: Dict[str, str]) -> Dict[str, str]:
+def mandatory_env_args(
+    mandatory_env_args: Dict[str, str], request: FixtureRequest
+) -> Dict[str, str]:
+    dirpath = request.fspath.dirpath()
     return dict(
         mandatory_env_args,
         OPC_SERVER_URL=f"opc.tcp://{OPC_SERVER_HOST}:4840",
+        OPC_CERT_FILE=dirpath.join("test-client-cert.der").strpath,
+        OPC_PRIVATE_KEY_FILE=dirpath.join("test-client-key.pem").strpath,
         OPC_MONITOR_NODES='["Monitored"]',
         OPC_RECORD_NODES='["Recorded"]',
     )

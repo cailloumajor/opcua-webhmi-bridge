@@ -8,6 +8,7 @@ import asyncua
 import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
+from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import UaStatusCodeError
 
 from .config import OPCSettings
@@ -50,6 +51,13 @@ class OPCUAClient(AsyncTask):
 
     async def _task(self) -> None:
         client = asyncua.Client(url=self._config.server_url)
+
+        await client.set_security(
+            SecurityPolicyBasic256Sha256,
+            str(self._config.cert_file),
+            str(self._config.private_key_file),
+        )
+
         async with client:
             ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
 

@@ -7,6 +7,8 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: detect-private-key
+        # Exclude private keys used for testing
+        exclude: tests/integration/(opc_server/)*test-(client|server)-key\.pem
       - id: end-of-file-fixer
       - id: fix-encoding-pragma
         args: [--remove]

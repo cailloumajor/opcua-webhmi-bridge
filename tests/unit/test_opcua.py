@@ -82,6 +82,7 @@ def test_task(
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     type_node = mocker.sentinel.type_node
     instance = cast(MockType, client.return_value)
+    instance.set_security = mocker.AsyncMock()
     instance.get_namespace_index = mocker.AsyncMock(return_value=mocker.sentinel.ns)
     instance.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
     instance.load_type_definitions = mocker.AsyncMock()

@@ -71,6 +71,15 @@ class TestOpcServer:
     async def run(self, http_port: int) -> None:
         await self.opc_server.init()
 
+        self.opc_server.set_security_policy(
+            [
+                ua.SecurityPolicyType.Basic256Sha256_Sign,
+                ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,
+            ]
+        )
+        await self.opc_server.load_certificate("test-server-cert.der")
+        await self.opc_server.load_private_key("test-server-key.pem")
+
         idx = await self.opc_server.register_namespace(NAMESPACE_URI)
 
         dict_builder = DataTypeDictionaryBuilder(
