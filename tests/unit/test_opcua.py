@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock as AsyncMockType
 from unittest.mock import Mock as MockType
 
 import pytest
+from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from pytest import LogCaptureFixture
 from pytest_mock import MockerFixture
 
@@ -45,6 +46,8 @@ def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
 @pytest.fixture
 def opcua_client(mocker: MockerFixture) -> OPCUAClient:
     config = mocker.Mock(
+        cert_file="certFile",
+        private_key_file="keyFile",
         monitor_nodes=["monitornode1", "monitornode2"],
         record_nodes=["recnode1", "recnode2"],
         retry_delay=1234,
@@ -106,6 +109,9 @@ def test_task(
         event_loop.run_until_complete(opcua_client._task())
     assert client.call_args_list == [mocker.call(url="opc/server.url")]
     assert instance.__aenter__.await_count == 1
+    assert instance.set_security.await_args_list == [
+        mocker.call(SecurityPolicyBasic256Sha256, "certFile", "keyFile")
+    ]
     assert instance.get_namespace_index.await_args_list == [
         mocker.call(SIMATIC_NAMESPACE_URI)
     ]
