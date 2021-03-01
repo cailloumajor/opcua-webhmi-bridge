@@ -51,7 +51,6 @@ def opcua_client(mocker: MockerFixture) -> OPCUAClient:
         monitor_nodes=["monitornode1", "monitornode2"],
         record_nodes=["recnode1", "recnode2"],
         retry_delay=1234,
-        server_url="opc/server.url",
     )
     centrifugo_proxy_server = mocker.Mock(last_opc_status=None)
     return OPCUAClient(config, centrifugo_proxy_server, mocker.Mock(), mocker.Mock())
@@ -64,6 +63,33 @@ def status_message_mock(mocker: MockerFixture) -> MockType:
 
 def test_status_initialized(opcua_client: OPCUAClient) -> None:
     assert opcua_client._status == LinkStatus.Down
+
+
+@pytest.mark.parametrize(
+    ["url", "expect_user_pass"],
+    [
+        ("//opc/server.url", False),
+        ("//user:pass@opc/server.url", True),
+    ],
+    ids=["Without user & password", "With user & password"],
+)
+def test_create_opc_client(
+    expect_user_pass: bool, mocker: MockerFixture, url: str
+) -> None:
+    mocked_asyncua_client = mocker.patch("asyncua.Client")
+    config = mocker.Mock(server_url=url)
+    opcua_client = OPCUAClient(config, mocker.Mock(), mocker.Mock(), mocker.Mock())
+    created_client = opcua_client._create_opc_client()
+    assert mocked_asyncua_client.call_args_list == [mocker.call(url="//opc/server.url")]
+    set_user = cast(MockType, created_client.set_user)
+    set_password = cast(MockType, created_client.set_password)
+    expected_set_user_call = []
+    expected_set_pw_call = []
+    if expect_user_pass:
+        expected_set_user_call.append(mocker.call("user"))
+        expected_set_pw_call.append(mocker.call("pass"))
+    assert set_user.call_args_list == expected_set_user_call
+    assert set_password.call_args_list == expected_set_pw_call
 
 
 @pytest.mark.parametrize(
@@ -81,22 +107,23 @@ def test_task(
     opcua_client: OPCUAClient,
     subscription_success: bool,
 ) -> None:
-    client = mocker.patch("asyncua.Client")
+    mocked_client = mocker.patch.object(opcua_client, "_create_opc_client").return_value
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     type_node = mocker.sentinel.type_node
-    instance = cast(MockType, client.return_value)
-    instance.set_security = mocker.AsyncMock()
-    instance.get_namespace_index = mocker.AsyncMock(return_value=mocker.sentinel.ns)
-    instance.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
-    instance.load_type_definitions = mocker.AsyncMock()
-    instance.create_subscription = mocker.AsyncMock()
-    subscription = instance.create_subscription.return_value
+    mocked_client.set_security = mocker.AsyncMock()
+    mocked_client.get_namespace_index = mocker.AsyncMock(
+        return_value=mocker.sentinel.ns
+    )
+    mocked_client.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
+    mocked_client.load_type_definitions = mocker.AsyncMock()
+    mocked_client.create_subscription = mocker.AsyncMock()
+    subscription = mocked_client.create_subscription.return_value
     sub_results = [12, 34, 56, 78, 910]
     if not subscription_success:
         sub_results[-2] = mocker.Mock(**{"check.side_effect": FakeUaStatusCodeError})
     subscription.subscribe_data_change = mocker.AsyncMock(return_value=sub_results)
     mocked_sleep: AsyncMockType = mocker.patch("asyncio.sleep")
-    gotten_node = instance.get_node.return_value
+    gotten_node = mocked_client.get_node.return_value
     read_data_value = gotten_node.read_data_value = mocker.AsyncMock(
         side_effect=InfiniteLoopBreaker
     )
@@ -107,19 +134,20 @@ def test_task(
         cm = pytest.raises(FakeUaStatusCodeError)
     with cm:
         event_loop.run_until_complete(opcua_client._task())
-    assert client.call_args_list == [mocker.call(url="opc/server.url")]
-    assert instance.__aenter__.await_count == 1
-    assert instance.set_security.await_args_list == [
+    assert mocked_client.__aenter__.await_count == 1
+    assert mocked_client.set_security.await_args_list == [
         mocker.call(SecurityPolicyBasic256Sha256, "certFile", "keyFile")
     ]
-    assert instance.get_namespace_index.await_args_list == [
+    assert mocked_client.get_namespace_index.await_args_list == [
         mocker.call(SIMATIC_NAMESPACE_URI)
     ]
-    assert instance.nodes.opc_binary.get_child.await_args_list == [
+    assert mocked_client.nodes.opc_binary.get_child.await_args_list == [
         mocker.call("sentinel.ns:SimaticStructures")
     ]
-    assert instance.load_type_definitions.await_args_list == [mocker.call([type_node])]
-    get_node = cast(MockType, instance.get_node)
+    assert mocked_client.load_type_definitions.await_args_list == [
+        mocker.call([type_node])
+    ]
+    get_node = cast(MockType, mocked_client.get_node)
     expected_get_node_calls = [
         mocker.call("ns=sentinel.ns;s=monitornode1"),
         mocker.call("ns=sentinel.ns;s=monitornode2"),
@@ -129,7 +157,7 @@ def test_task(
     if subscription_success:
         expected_get_node_calls.append(mocker.call(2259))
     assert get_node.call_args_list == expected_get_node_calls
-    assert instance.create_subscription.await_args_list == [
+    assert mocked_client.create_subscription.await_args_list == [
         mocker.call(1000, opcua_client)
     ]
     assert subscription.subscribe_data_change.await_args_list == [
