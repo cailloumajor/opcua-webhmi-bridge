@@ -76,7 +76,9 @@ class InfluxSettings(BaseSettings):
 class OPCSettings(BaseSettings):
     """OPC-UA related configuration options."""
 
-    server_url: OpcUrl = Field(..., help="URL of the OPC-UA server")
+    server_url: OpcUrl = Field(
+        ..., help="URL of the OPC-UA server, including username / password if needed"
+    )
     cert_file: FilePath = Field(..., help="Path of the OPC-UA client certificate")
     private_key_file: FilePath = Field(
         ..., help="Path of the OPC-UA client private key"

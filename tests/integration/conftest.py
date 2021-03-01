@@ -22,7 +22,7 @@ def mandatory_env_args(
     dirpath = request.fspath.dirpath()
     return dict(
         mandatory_env_args,
-        OPC_SERVER_URL=f"opc.tcp://{OPC_SERVER_HOST}:4840",
+        OPC_SERVER_URL=f"opc.tcp://authorized_user:authorized_password@{OPC_SERVER_HOST}:4840",
         OPC_CERT_FILE=dirpath.join("test-client-cert.der").strpath,
         OPC_PRIVATE_KEY_FILE=dirpath.join("test-client-key.pem").strpath,
         OPC_MONITOR_NODES='["Monitored"]',
