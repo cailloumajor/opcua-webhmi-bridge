@@ -1,19 +1,39 @@
 import asyncio
 import logging
+from typing import Any, Optional
 
 import typer
 from aiohttp import web
 from asyncua import Server as OpcServer
 from asyncua import ua
 from asyncua.common.type_dictionary_builder import DataTypeDictionaryBuilder
+from asyncua.server.users import User, UserRole
 from asyncua.ua.uatypes import NodeId
 
 NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 
 
+class UserManager:
+    def get_user(
+        self,
+        iserver: Any,
+        username: Optional[str],
+        password: Optional[str],
+        certificate: Optional[Any],
+    ) -> Optional[User]:
+        del iserver
+        del certificate
+        if (
+            username == "authorized_user"
+            and password == "authorized_password"  # noqa: S105
+        ):
+            return User(UserRole.User)
+        return None
+
+
 class TestOpcServer:
     def __init__(self) -> None:
-        self.opc_server = OpcServer()
+        self.opc_server = OpcServer(user_manager=UserManager())
 
     async def ping_handler(
         self,
@@ -70,6 +90,15 @@ class TestOpcServer:
 
     async def run(self, http_port: int) -> None:
         await self.opc_server.init()
+
+        self.opc_server.set_security_policy(
+            [
+                ua.SecurityPolicyType.Basic256Sha256_Sign,
+                ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,
+            ]
+        )
+        await self.opc_server.load_certificate("test-server-cert.der")
+        await self.opc_server.load_private_key("test-server-key.pem")
 
         idx = await self.opc_server.register_namespace(NAMESPACE_URI)
 

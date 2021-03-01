@@ -14,6 +14,8 @@ MANDATORY_ENV_ARGS = {
     "CENTRIFUGO_API_KEY": "key",
     "INFLUX_DB_NAME": "db",
     "OPC_SERVER_URL": "opc.tcp://localhost:4840",
+    "OPC_CERT_FILE": "cert.der",
+    "OPC_PRIVATE_KEY_FILE": "key.pem",
     "OPC_MONITOR_NODES": '["node1", "node2"]',
     "OPC_RECORD_NODES": '["node3", "node4"]',
 }
@@ -50,8 +52,13 @@ def pytest_collection_modifyitems(
 
 
 @pytest.fixture
-def mandatory_env_args() -> Dict[str, str]:
-    return MANDATORY_ENV_ARGS
+def mandatory_env_args(tmp_path: Path) -> Dict[str, str]:
+    updated = dict(MANDATORY_ENV_ARGS)
+    for key in ["OPC_CERT_FILE", "OPC_PRIVATE_KEY_FILE"]:
+        file = tmp_path / MANDATORY_ENV_ARGS[key]
+        file.touch()
+        updated[key] = str(file)
+    return updated
 
 
 @pytest.fixture(params=MANDATORY_ENV_ARGS.keys())

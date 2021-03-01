@@ -8,7 +8,9 @@ import asyncua
 import tenacity
 from asyncua import ua
 from asyncua.common.subscription import SubscriptionItemData
+from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import UaStatusCodeError
+from yarl import URL
 
 from .config import OPCSettings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
@@ -48,8 +50,24 @@ class OPCUAClient(AsyncTask):
         self._influx_writer = influx_writer
         self._status = LinkStatus.Down
 
+    def _create_opc_client(self) -> asyncua.Client:
+        server_url = URL(self._config.server_url)
+        sanitized_server_url = server_url.with_user(None)
+        client = asyncua.Client(url=str(sanitized_server_url))
+        if server_url.user is not None:
+            client.set_user(server_url.user)
+            client.set_password(server_url.password)
+        return client
+
     async def _task(self) -> None:
-        client = asyncua.Client(url=self._config.server_url)
+        client = self._create_opc_client()
+
+        await client.set_security(
+            SecurityPolicyBasic256Sha256,
+            str(self._config.cert_file),
+            str(self._config.private_key_file),
+        )
+
         async with client:
             ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
 

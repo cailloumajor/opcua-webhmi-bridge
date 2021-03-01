@@ -67,6 +67,8 @@ def test_missing_mandatory_arg(
         EnvArg("OPC_RECORD_NODES", '"not_an_iterable"'),
         EnvArg("OPC_RECORD_NODES", "invalid_json"),
         EnvArg("OPC_RETRY_DELAY", "-1"),
+        EnvArg("OPC_CERT_FILE", "/nonexistent"),
+        EnvArg("OPC_PRIVATE_KEY_FILE", "/nonexistent"),
     ],
     ids=arg_name,
 )
