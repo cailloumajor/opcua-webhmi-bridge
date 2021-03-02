@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-if [ "$1" = '.venv/bin/opcua-bridge' ] && [ "$(id -u)" = '0' ]; then
+if [ "$1" = '.venv/bin/opcua-agent' ] && [ "$(id -u)" = '0' ]; then
     if [ -d "/tmp/certs" ]; then
         mkdir /certs
         cp /tmp/certs/cert.der /tmp/certs/key.pem /certs
