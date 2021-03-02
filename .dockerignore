@@ -1,4 +1,5 @@
 *
+!docker-entrypoint.sh
 !poetry_install_vars.sh
 !poetry.lock
 !pyproject.toml
