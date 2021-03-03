@@ -76,6 +76,8 @@ jobs:
       - uses: pre-commit/action@v2.0.0
         env:
           SKIP: mypy
+        with:
+          extra_args: --verbose
       - name: Set up mypy cache
         uses: actions/cache@v2
         with:
