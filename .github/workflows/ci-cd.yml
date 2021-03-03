@@ -77,7 +77,7 @@ jobs:
         env:
           SKIP: mypy
         with:
-          extra_args: --verbose
+          extra_args: --all-files --verbose
       - name: Set up mypy cache
         uses: actions/cache@v2
         with:
