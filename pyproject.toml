@@ -12,7 +12,7 @@ opcua-agent = "opcua_webhmi_bridge.main:app"
 python = "~3.8"
 asyncua = "0.9.12"
 tenacity = "6.1.0"
-pydantic = {extras = ["dotenv"], version = "1.8"}
+pydantic = {extras = ["dotenv"], version = "1.8.1"}
 typer = "0.3.2"
 aiohttp = "3.7.4"
 yarl = "1.6.3"
