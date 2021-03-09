@@ -2,7 +2,7 @@ FROM debian:buster AS gosu
 
 # grab gosu for easy step-down from root
 # https://github.com/tianon/gosu/releases
-ENV GOSU_VERSION 1.12
+ENV GOSU_VERSION=1.12
 # hadolint ignore=DL3008,DL4006,SC2015,SC2086,SC2155
 RUN set -eux ; \
     apt-get update; \
