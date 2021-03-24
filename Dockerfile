@@ -51,9 +51,7 @@ FROM python:3.8.7-slim-buster AS final
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
 LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua-webhmi-bridge
 
-ENV PYTHONUNBUFFERED=1 \
-    OPC_CERT_FILE=/certs/cert.der \
-    OPC_PRIVATE_KEY_FILE=/certs/key.pem
+ENV PYTHONUNBUFFERED=1
 
 RUN useradd --user-group --system --create-home --no-log-init pythonapp \
     && mkdir /app \
