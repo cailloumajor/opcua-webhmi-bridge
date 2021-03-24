@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import Callable, Dict, Iterable, List, NamedTuple
 
 import pytest
@@ -81,6 +82,41 @@ def test_bad_arg_type(
     set_vars(mandatory_env_args)
     monkeypatch.setenv(bad_arg.name, bad_arg.value)
     with pytest.raises(ConfigError, match=re.escape(bad_arg.name)):
+        Settings()
+
+
+@pytest.mark.parametrize(
+    ["apply_args", "expect_failure"],
+    [
+        (["OPC_CERT_FILE"], True),
+        (["OPC_PRIVATE_KEY_FILE"], True),
+        (["OPC_CERT_FILE", "OPC_PRIVATE_KEY_FILE"], False),
+    ],
+    ids=[
+        "Certificate file only",
+        "Private key file only",
+        "Both certificate and private key files",
+    ],
+)
+def test_opc_cert_and_key(
+    apply_args: List[str],
+    expect_failure: bool,
+    mandatory_env_args: List[EnvArg],
+    monkeypatch: MonkeyPatch,
+    set_vars: SetVarsFixture,
+    tmp_path: Path,
+) -> None:
+    set_vars(mandatory_env_args)
+    for arg in apply_args:
+        file = tmp_path / arg.lower()
+        file.touch()
+        monkeypatch.setenv(arg, str(file))
+    if expect_failure:
+        with pytest.raises(
+            ConfigError, match="Missing one of OPC_CERT_FILE/OPC_PRIVATE_KEY_FILE"
+        ):
+            Settings()
+    else:
         Settings()
 
 

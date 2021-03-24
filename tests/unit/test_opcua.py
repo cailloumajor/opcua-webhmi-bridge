@@ -2,8 +2,7 @@ import asyncio
 import contextlib
 import logging
 from typing import Any, Callable, ContextManager, List, cast
-from unittest.mock import AsyncMock as AsyncMockType
-from unittest.mock import Mock as MockType
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
@@ -57,7 +56,7 @@ def opcua_client(mocker: MockerFixture) -> OPCUAClient:
 
 
 @pytest.fixture
-def status_message_mock(mocker: MockerFixture) -> MockType:
+def status_message_mock(mocker: MockerFixture) -> Mock:
     return mocker.patch("opcua_webhmi_bridge.opcua.OPCStatusMessage")
 
 
@@ -66,38 +65,57 @@ def test_status_initialized(opcua_client: OPCUAClient) -> None:
 
 
 @pytest.mark.parametrize(
-    ["url", "expect_user_pass"],
+    ["url", "expect_user_pass", "with_cert_file"],
     [
-        ("//opc/server.url", False),
-        ("//user:pass@opc/server.url", True),
+        ("//opc/server.url", False, False),
+        ("//user:pass@opc/server.url", True, False),
+        ("//opc/server.url", False, True),
+        ("//user:pass@opc/server.url", True, True),
     ],
-    ids=["Without user & password", "With user & password"],
+    ids=[
+        "Without credentials and encryption",
+        "With credentials",
+        "With encryption",
+        "With credentials and encryption",
+    ],
 )
 def test_create_opc_client(
-    expect_user_pass: bool, mocker: MockerFixture, url: str
+    event_loop: asyncio.AbstractEventLoop,
+    expect_user_pass: bool,
+    mocker: MockerFixture,
+    url: str,
+    with_cert_file: bool,
 ) -> None:
     mocked_asyncua_client = mocker.patch("asyncua.Client")
+    mocked_asyncua_client.return_value.set_security = mocker.AsyncMock()
     config = mocker.Mock(server_url=url)
+    if with_cert_file:
+        config.configure_mock(cert_file="certFile", private_key_file="keyFile")
+    else:
+        config.configure_mock(cert_file=None, private_key_file=None)
     opcua_client = OPCUAClient(config, mocker.Mock(), mocker.Mock(), mocker.Mock())
-    created_client = opcua_client._create_opc_client()
+    created_client = event_loop.run_until_complete(opcua_client._create_opc_client())
     assert mocked_asyncua_client.call_args_list == [mocker.call(url="//opc/server.url")]
-    set_user = cast(MockType, created_client.set_user)
-    set_password = cast(MockType, created_client.set_password)
+    set_user = cast(Mock, created_client.set_user)
+    set_password = cast(Mock, created_client.set_password)
     expected_set_user_call = []
     expected_set_pw_call = []
+    expected_set_security_call = []
     if expect_user_pass:
         expected_set_user_call.append(mocker.call("user"))
         expected_set_pw_call.append(mocker.call("pass"))
+    if with_cert_file:
+        expected_set_security_call.append(
+            mocker.call(SecurityPolicyBasic256Sha256, "certFile", "keyFile")
+        )
     assert set_user.call_args_list == expected_set_user_call
     assert set_password.call_args_list == expected_set_pw_call
+    assert created_client.set_security.await_args_list == expected_set_security_call
 
 
 @pytest.mark.parametrize(
-    ["subscription_success"],
-    [
-        (True,),
-        (False,),
-    ],
+    "subscription_success",
+    [True, False],
     ids=["Subscription success", "Subscription failure"],
 )
 def test_task(
@@ -107,10 +125,12 @@ def test_task(
     opcua_client: OPCUAClient,
     subscription_success: bool,
 ) -> None:
-    mocked_client = mocker.patch.object(opcua_client, "_create_opc_client").return_value
+    mocked_client = MagicMock()
+    mocker.patch.object(
+        opcua_client, "_create_opc_client", new=AsyncMock(return_value=mocked_client)
+    )
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     type_node = mocker.sentinel.type_node
-    mocked_client.set_security = mocker.AsyncMock()
     mocked_client.get_namespace_index = mocker.AsyncMock(
         return_value=mocker.sentinel.ns
     )
@@ -122,7 +142,7 @@ def test_task(
     if not subscription_success:
         sub_results[-2] = mocker.Mock(**{"check.side_effect": FakeUaStatusCodeError})
     subscription.subscribe_data_change = mocker.AsyncMock(return_value=sub_results)
-    mocked_sleep: AsyncMockType = mocker.patch("asyncio.sleep")
+    mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
     gotten_node = mocked_client.get_node.return_value
     read_data_value = gotten_node.read_data_value = mocker.AsyncMock(
         side_effect=InfiniteLoopBreaker
@@ -135,9 +155,6 @@ def test_task(
     with cm:
         event_loop.run_until_complete(opcua_client._task())
     assert mocked_client.__aenter__.await_count == 1
-    assert mocked_client.set_security.await_args_list == [
-        mocker.call(SecurityPolicyBasic256Sha256, "certFile", "keyFile")
-    ]
     assert mocked_client.get_namespace_index.await_args_list == [
         mocker.call(SIMATIC_NAMESPACE_URI)
     ]
@@ -147,7 +164,7 @@ def test_task(
     assert mocked_client.load_type_definitions.await_args_list == [
         mocker.call([type_node])
     ]
-    get_node = cast(MockType, mocked_client.get_node)
+    get_node = cast(Mock, mocked_client.get_node)
     expected_get_node_calls = [
         mocker.call("ns=sentinel.ns;s=monitornode1"),
         mocker.call("ns=sentinel.ns;s=monitornode2"),
@@ -187,7 +204,7 @@ class TestSetStatus:
     def test_same_status(
         self,
         clear_last_opc_data_call_count: int,
-        status_message_mock: MockType,
+        status_message_mock: Mock,
         mocker: MockerFixture,
         new_status: LinkStatus,
         opcua_client: OPCUAClient,
@@ -195,7 +212,7 @@ class TestSetStatus:
         opcua_client._status = new_status
         opcua_client.set_status(new_status)
         clear_last_opc_data = cast(
-            MockType, opcua_client._centrifugo_proxy_server.clear_last_opc_data
+            Mock, opcua_client._centrifugo_proxy_server.clear_last_opc_data
         )
         assert clear_last_opc_data.call_count == clear_last_opc_data_call_count
         assert status_message_mock.call_args_list == [mocker.call(payload=new_status)]
@@ -206,15 +223,13 @@ class TestSetStatus:
 
     def test_status_changed(
         self,
-        status_message_mock: MockType,
+        status_message_mock: Mock,
         mocker: MockerFixture,
         opcua_client: OPCUAClient,
     ) -> None:
         opcua_client.set_status(LinkStatus.Up)
         assert opcua_client._status == LinkStatus.Up
-        messaging_writer_put = cast(
-            MockType, opcua_client._frontend_messaging_writer.put
-        )
+        messaging_writer_put = cast(Mock, opcua_client._frontend_messaging_writer.put)
         assert messaging_writer_put.call_args_list == [
             mocker.call(status_message_mock.return_value)
         ]
@@ -248,19 +263,19 @@ def test_datachange_notification(
     value = mocker.sentinel.value
     mocker.patch.object(opcua_client, "set_status")
     opcua_client.datachange_notification(node, value, mocker.Mock())
-    set_status = cast(MockType, opcua_client.set_status)
+    set_status = cast(Mock, opcua_client.set_status)
     message_instance = data_change_message_mock.return_value
     assert set_status.call_args_list == [mocker.call(LinkStatus.Up)]
     assert data_change_message_mock.call_args_list == [
         mocker.call(node_id=node_id, ua_object=value)
     ]
     record_last_opc_data = cast(
-        MockType, opcua_client._centrifugo_proxy_server.record_last_opc_data
+        Mock, opcua_client._centrifugo_proxy_server.record_last_opc_data
     )
     assert record_last_opc_data.call_args_list == [mocker.call(message_instance)]
-    messaging_writer_put = cast(MockType, opcua_client._frontend_messaging_writer.put)
+    messaging_writer_put = cast(Mock, opcua_client._frontend_messaging_writer.put)
     assert messaging_writer_put.call_args_list == [mocker.call(message_instance)]
-    influx_writer_put = cast(MockType, opcua_client._influx_writer.put)
+    influx_writer_put = cast(Mock, opcua_client._influx_writer.put)
     expected_influx_put_call = [mocker.call(message_instance)] if influx_write else []
     assert influx_writer_put.call_args_list == expected_influx_put_call
 
@@ -279,7 +294,7 @@ def test_before_sleep(
     )
     mocker.patch.object(opcua_client, "set_status")
     opcua_client.before_sleep(retry_call_state)
-    set_status = cast(MockType, opcua_client.set_status)
+    set_status = cast(Mock, opcua_client.set_status)
     assert set_status.call_args_list == [mocker.call(LinkStatus.Down)]
     last_log_record = log_records()[-1]
     assert last_log_record.levelno == logging.INFO
@@ -310,5 +325,5 @@ def test_task_wrapper(
         mocker.call(OSError),
         mocker.call(asyncio.TimeoutError),
     ]
-    call_method = cast(MockType, async_retrying.return_value.call)
+    call_method = cast(Mock, async_retrying.return_value.call)
     assert call_method.call_args_list == [mocker.call(opcua_client._task)]
