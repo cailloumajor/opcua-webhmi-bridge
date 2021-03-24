@@ -79,10 +79,6 @@ class OPCSettings(BaseSettings):
     server_url: OpcUrl = Field(
         ..., help="URL of the OPC-UA server, including username / password if needed"
     )
-    cert_file: FilePath = Field(..., help="Path of the OPC-UA client certificate")
-    private_key_file: FilePath = Field(
-        ..., help="Path of the OPC-UA client private key"
-    )
     monitor_nodes: List[str] = Field(
         ..., help="Array of node IDs to monitor without recording (JSON format)"
     )
@@ -91,6 +87,10 @@ class OPCSettings(BaseSettings):
     )
     retry_delay: PositiveInt = Field(
         5, help="Delay in seconds to retry OPC-UA connection"
+    )
+    cert_file: FilePath = Field(None, help="Path of the OPC-UA client certificate")
+    private_key_file: FilePath = Field(
+        None, help="Path of the OPC-UA client private key"
     )
 
     @root_validator
@@ -109,8 +109,26 @@ class OPCSettings(BaseSettings):
             )
         return values
 
+    @root_validator
+    def check_cert_and_key_set(
+        cls: "OPCSettings",  # noqa: U100, N805
+        values: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Validates that both or none of certificate and private key files parameters are set."""
+        cert_file: Optional[str] = values.get("cert_file")
+        private_key_file: Optional[str] = values.get("private_key_file")
+        if (cert_file is None) != (private_key_file is None):
+            raise ValueError("Missing one of OPC_CERT_FILE/OPC_PRIVATE_KEY_FILE")
+        return values
+
     class Config:  # noqa: D106
         env_prefix = "opc_"
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any]) -> None:
+            """Processes the generated schema."""
+            for prop in ("cert_file", "private_key_file"):
+                schema["properties"][prop]["default"] = "unset"
 
 
 @dataclasses.dataclass
