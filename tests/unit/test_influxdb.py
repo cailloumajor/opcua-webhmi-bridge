@@ -36,7 +36,12 @@ def influxdb_writer(
     httpserver: HTTPServer,
     mocker: MockerFixture,
 ) -> InfluxDBWriter:
-    config = mocker.Mock(db_name="test_db", root_url=httpserver.url_for("/influx"))
+    config = mocker.Mock(  # noqa: S106
+        org="test_org",
+        bucket="test_bucket",
+        token="test_token",
+        base_url=httpserver.url_for("/influx"),
+    )
     return InfluxDBWriter(config)
 
 
@@ -142,7 +147,8 @@ class TestTask:
             "/influx/api/v2/write",
             method="POST",
             data="measurement,tag=tagval field=1.0 ",
-            query_string={"bucket": "test_db", "precision": "s"},
+            headers={"Authorization": "Token test_token"},
+            query_string={"org": "test_org", "bucket": "test_bucket", "precision": "s"},
         ).respond_with_json({}, status=204)
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())
@@ -157,13 +163,11 @@ class TestTask:
     @pytest.mark.parametrize(
         ["resp_json", "expected_message"],
         [
-            ({"error": "error JSON"}, "error JSON"),
             ({"message": "error JSON"}, "error JSON"),
             ({}, "NOT FOUND"),
         ],
         ids=[
-            "InfluxDB 1.8 error",
-            "InfluxDB 2.0 error",
+            "InfluxDB error",
             "Empty response",
         ],
     )
@@ -181,7 +185,8 @@ class TestTask:
             "/influx/api/v2/write",
             method="POST",
             data="measurement,tag=tagval field=1.0 ",
-            query_string={"bucket": "test_db", "precision": "s"},
+            headers={"Authorization": "Token test_token"},
+            query_string={"org": "test_org", "bucket": "test_bucket", "precision": "s"},
         ).respond_with_json(resp_json, status=404)
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())

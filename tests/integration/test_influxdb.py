@@ -1,8 +1,7 @@
 import csv
 import time
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Literal, Optional
+from typing import Any, Dict, List
 
 import pytest
 import requests
@@ -11,54 +10,58 @@ from yarl import URL
 from .conftest import MainProcessFixture, OPCServer
 
 INFLUXDB_HOST = "influxdb"
-INFLUXDB_DB = "test_bucket"
-
-
-@dataclass
-class InfluxDBQuery:
-    method: Literal["GET", "POST"]
-    statement: str
-    db: Optional[str] = None
+INFLUXDB_ORG = "testorg"
+INFLUXDB_BUCKET = "testbucket"
+INFLUXDB_TOKEN = (
+    "zsQmRXoNWcQU4jsJxGOMQqwu5KLNGUhsxg4KZ2YRypNP"  # noqa: S105
+    "C8FV7VUlygO4YndqHFlY4KwoOe5Dt0nrosEvDJYkiQ=="
+)
 
 
 class InfluxDB:
     def __init__(self) -> None:
         self.root_url = URL(f"http://{INFLUXDB_HOST}:8086")
+        self.session = requests.Session()
+        self.session.headers.update({"Authorization": f"Token {INFLUXDB_TOKEN}"})
+        self.session.params = {"org": INFLUXDB_ORG}
 
     def url(self, endpoint: str) -> str:
         return str(self.root_url / endpoint)
 
-    def query(self, query: InfluxDBQuery) -> List[Dict[str, Any]]:
-        url_params = {"q": query.statement}
-        if query.db:
-            url_params["db"] = query.db
-        resp = requests.request(
-            query.method,
-            self.url("query"),
-            headers={"Accept": "application/csv"},
-            params=url_params,
+    def clear(self) -> None:
+        data = {
+            "start": "1970-01-01T00:00:00Z",
+            "stop": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        resp = self.session.post(
+            self.url("api/v2/delete"), params={"bucket": INFLUXDB_BUCKET}, json=data
+        )
+        resp.raise_for_status()
+
+    def query(self, query: str) -> List[Dict[str, Any]]:
+        resp = self.session.post(
+            self.url("api/v2/query"),
+            headers={"Content-Type": "application/vnd.flux"},
+            data=query,
         )
         resp.raise_for_status()
         return list(csv.DictReader(resp.text.splitlines()))
 
     def ping(self) -> bool:
-        try:
-            resp = requests.get(self.url("ping"))
-            resp.raise_for_status()
-        except requests.RequestException:
+        resp = requests.get(self.url("ready"))
+        if resp.status_code != 200:
             return False
-        else:
-            return True
+        resp = requests.get(self.url("api/v2/setup"))
+        return resp.json()["allowed"] is False
 
 
 @pytest.fixture()
-def influxdb() -> Generator[InfluxDB, None, None]:
+def influxdb() -> InfluxDB:
     _influxdb = InfluxDB()
     while not _influxdb.ping():
         time.sleep(0.1)
-    _influxdb.query(InfluxDBQuery("POST", f"CREATE DATABASE {INFLUXDB_DB}"))
-    yield _influxdb
-    _influxdb.query(InfluxDBQuery("POST", f"DROP DATABASE {INFLUXDB_DB}"))
+    _influxdb.clear()
+    return _influxdb
 
 
 def test_smoketest(
@@ -69,8 +72,10 @@ def test_smoketest(
 ) -> None:
     envargs = dict(
         mandatory_env_args,
-        INFLUX_DB_NAME=INFLUXDB_DB,
-        INFLUX_ROOT_URL=str(influxdb.root_url),
+        INFLUXDB_ORG=INFLUXDB_ORG,
+        INFLUXDB_BUCKET=INFLUXDB_BUCKET,
+        INFLUXDB_TOKEN=INFLUXDB_TOKEN,
+        INFLUXDB_BASE_URL=str(influxdb.root_url),
     )
     process = main_process([], envargs)
     start_time = datetime.now()
@@ -81,21 +86,33 @@ def test_smoketest(
         ), "Timeout waiting for OPC-UA server to have subscriptions"
         time.sleep(1.0)
         assert process.poll() is None
+    # InfluxDB time precision is set to second at write, so sleep to be sure
+    # to not overwrite the last point
+    time.sleep(1.0)
     opcserver.change_node("recorded")
     lines: List[Dict[str, Any]] = []
     start_time = datetime.now()
     while not lines:
         elapsed = datetime.now() - start_time
         assert elapsed.total_seconds() < 10, "Timeout waiting InfluxDB to have series"
-        lines = influxdb.query(InfluxDBQuery("GET", "SHOW SERIES", db=INFLUXDB_DB))
+        lines = influxdb.query(
+            f"""import "influxdata/influxdb/schema"
+            schema.measurements(bucket: "{INFLUXDB_BUCKET}")"""
+        )
         time.sleep(1.0)
-    measurements = [line["key"].split(",")[0] for line in lines]
-    assert all(meas == "Recorded" for meas in measurements)
+    assert all(line["_value"] == "Recorded" for line in lines)
     lines = influxdb.query(
-        InfluxDBQuery("GET", 'SELECT * FROM "Recorded"', db=INFLUXDB_DB)
+        f"""from(bucket: "{INFLUXDB_BUCKET}")
+          |> range(start: -1h)
+          |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
     )
-    assert len(lines) == 2, f"Got lines:\n{lines}"
-    for i in range(2):
-        line = next(line for line in lines if line["Recorded_index"] == str(i))
-        assert line["Active"] == ["false", "true"][i]
-        assert line["Age"] == ["67", "12"][i]
+    expected_items = [
+        (("Recorded_index", "0"), ("Active", "true"), ("Age", "18")),
+        (("Recorded_index", "0"), ("Active", "false"), ("Age", "67")),
+        (("Recorded_index", "1"), ("Active", "false"), ("Age", "32")),
+        (("Recorded_index", "1"), ("Active", "true"), ("Age", "12")),
+    ]
+    for items in expected_items:
+        assert lines.pop(0).items() > set(items)
+    assert len(lines) == 0  # All lines must have been consumed

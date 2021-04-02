@@ -61,7 +61,7 @@ def test_missing_mandatory_arg(
         EnvArg("CENTRIFUGO_PROXY_PORT", "0"),
         EnvArg("CENTRIFUGO_PROXY_PORT", "65537"),
         EnvArg("CENTRIFUGO_PROXY_PORT", "port"),
-        EnvArg("INFLUX_ROOT_URL", "example.com:8086"),
+        EnvArg("INFLUXDB_BASE_URL", "example.com:8086"),
         EnvArg("OPC_SERVER_URL", "http://example.com:1234"),
         EnvArg("OPC_MONITOR_NODES", '"not_an_iterable"'),
         EnvArg("OPC_MONITOR_NODES", "invalid_json"),
