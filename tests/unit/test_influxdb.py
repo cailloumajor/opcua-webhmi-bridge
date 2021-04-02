@@ -147,6 +147,7 @@ class TestTask:
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
+        assert len(httpserver.log) > 0
         httpserver.check_assertions()
         assert not any(r.levelno == logging.ERROR for r in log_records())
         task.cancel()
@@ -185,6 +186,7 @@ class TestTask:
         task = event_loop.create_task(influxdb_writer.task())
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
+        assert len(httpserver.log) > 0
         httpserver.check_assertions()
         last_log_record = log_records()[-1]
         assert last_log_record.levelno == logging.ERROR
