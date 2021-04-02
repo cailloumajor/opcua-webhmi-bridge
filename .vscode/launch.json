@@ -19,7 +19,8 @@
             "request": "test",
             "env": {
               "PYTEST_ADDOPTS": "--no-cov"
-            }
+            },
+            "justMyCode": false
         }
     ]
 }

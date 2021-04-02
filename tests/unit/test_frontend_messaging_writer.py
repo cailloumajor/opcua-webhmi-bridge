@@ -35,7 +35,7 @@ def messaging_writer(
     mocker.patch("opcua_webhmi_bridge.frontend_messaging.HEARTBEAT_TIMEOUT", 0.5)
     config = mocker.Mock(
         api_url=httpserver.url_for("/api"),
-        **{"api_key.get_secret_value.return_value": "api-key"}
+        **{"api_key.get_secret_value.return_value": "api_key"}
     )
     return FrontendMessagingWriter(config)
 
