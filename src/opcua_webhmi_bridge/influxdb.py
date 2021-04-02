@@ -152,9 +152,16 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
 
     async def task(self) -> None:
         """Implements InfluxDB writer asynchronous task."""
-        url = URL(str(self._config.root_url)) / "api/v2/write"
-        params = {"bucket": self._config.db_name, "precision": "s"}
-        async with ClientSession(timeout=ClientTimeout(total=10)) as session:
+        headers = {"Authorization": f"Token {self._config.token}"}
+        url = URL(self._config.base_url) / "api/v2/write"
+        params = {
+            "org": self._config.org,
+            "bucket": self._config.bucket,
+            "precision": "s",
+        }
+        async with ClientSession(
+            headers=headers, timeout=ClientTimeout(total=10)
+        ) as session:
             while True:
                 line_protocol = to_influx(await self._queue.get())
                 try:
@@ -163,10 +170,6 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
                     ) as resp:
                         if not resp.status == 204:
                             resp_data = await resp.json()
-                            # InfluxDB 1.8
-                            if (error := resp_data.get("error")) is not None:
-                                raise InfluxDBWriteError(error)
-                            # InfluxDB 2.0
                             if (message := resp_data.get("message")) is not None:
                                 raise InfluxDBWriteError(message)
                             resp.raise_for_status()

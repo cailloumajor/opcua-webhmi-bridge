@@ -64,13 +64,13 @@ class CentrifugoSettings(BaseSettings):
 class InfluxSettings(BaseSettings):
     """InfluxDB related configuration options."""
 
-    db_name: str = Field(..., help="Name of the InfluxDB database to use")
-    root_url: AnyHttpUrl = Field(
-        "http://localhost:8086/", help="Root URL of InfluxDB 2.0 API"
-    )
+    org: str = Field(..., help="InfluxDB organization")
+    bucket: str = Field(..., help="InfluxDB bucket")
+    token: str = Field(..., help="InfluxDB auth token with write permission")
+    base_url: AnyHttpUrl = Field("http://localhost:8086/", help="Base InfluxDB URL")
 
     class Config:  # noqa: D106
-        env_prefix = "influx_"
+        env_prefix = "influxdb_"
 
 
 class OPCSettings(BaseSettings):

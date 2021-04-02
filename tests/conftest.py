@@ -12,7 +12,9 @@ INTEGRATION_MARKER = "integration"
 
 MANDATORY_ENV_ARGS = {
     "CENTRIFUGO_API_KEY": "key",
-    "INFLUX_DB_NAME": "db",
+    "INFLUXDB_ORG": "test_org",
+    "INFLUXDB_BUCKET": "test_bucket",
+    "INFLUXDB_TOKEN": "test_token",
     "OPC_SERVER_URL": "opc.tcp://localhost:4840",
     "OPC_MONITOR_NODES": '["node1", "node2"]',
     "OPC_RECORD_NODES": '["node3", "node4"]',
