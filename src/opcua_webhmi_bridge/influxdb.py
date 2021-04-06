@@ -152,7 +152,7 @@ class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
 
     async def task(self) -> None:
         """Implements InfluxDB writer asynchronous task."""
-        headers = {"Authorization": f"Token {self._config.token}"}
+        headers = {"Authorization": f"Token {self._config.write_token}"}
         url = URL(self._config.base_url) / "api/v2/write"
         params = {
             "org": self._config.org,

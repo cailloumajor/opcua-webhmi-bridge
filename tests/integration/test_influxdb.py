@@ -74,7 +74,7 @@ def test_smoketest(
         mandatory_env_args,
         INFLUXDB_ORG=INFLUXDB_ORG,
         INFLUXDB_BUCKET=INFLUXDB_BUCKET,
-        INFLUXDB_TOKEN=INFLUXDB_TOKEN,
+        INFLUXDB_WRITE_TOKEN=INFLUXDB_TOKEN,
         INFLUXDB_BASE_URL=str(influxdb.root_url),
     )
     process = main_process([], envargs)

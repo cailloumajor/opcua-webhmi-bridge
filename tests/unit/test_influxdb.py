@@ -39,7 +39,7 @@ def influxdb_writer(
     config = mocker.Mock(  # noqa: S106
         org="test_org",
         bucket="test_bucket",
-        token="test_token",
+        write_token="test_token",
         base_url=httpserver.url_for("/influx"),
     )
     return InfluxDBWriter(config)

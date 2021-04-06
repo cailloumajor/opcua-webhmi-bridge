@@ -66,7 +66,7 @@ class InfluxSettings(BaseSettings):
 
     org: str = Field(..., help="InfluxDB organization")
     bucket: str = Field(..., help="InfluxDB bucket")
-    token: str = Field(..., help="InfluxDB auth token with write permission")
+    write_token: str = Field(..., help="InfluxDB auth token with write permission")
     base_url: AnyHttpUrl = Field("http://localhost:8086/", help="Base InfluxDB URL")
 
     class Config:  # noqa: D106
