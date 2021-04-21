@@ -73,7 +73,7 @@ jobs:
         run: |
           tar -xf /tmp/virtual-environment.tar.zst
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
-      - uses: pre-commit/action@v2.0.2
+      - uses: pre-commit/action@v2.0.3
         env:
           SKIP: mypy
         with:
