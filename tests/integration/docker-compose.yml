@@ -34,7 +34,7 @@ services:
     build: ./opc_server
 
   influxdb:
-    image: influxdb:2.0.5
+    image: influxdb:2.0.6
     environment:
       - INFLUXD_REPORTING_DISABLED=true
       - DOCKER_INFLUXDB_INIT_MODE=setup
