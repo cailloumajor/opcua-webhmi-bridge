@@ -34,7 +34,7 @@ services:
     build: ./opc_server
 
   influxdb:
-    image: influxdb:2.0
+    image: influxdb:2.0.5
     environment:
       - INFLUXD_REPORTING_DISABLED=true
       - DOCKER_INFLUXDB_INIT_MODE=setup
@@ -46,7 +46,7 @@ services:
     tty: true
 
   centrifugo:
-    image: centrifugo/centrifugo:v2.6
+    image: centrifugo/centrifugo:v2.8.2
     command: centrifugo --config config.toml
     tty: true
     volumes:
