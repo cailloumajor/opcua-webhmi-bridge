@@ -40,8 +40,13 @@ class CentrifugoServer:
 @pytest.fixture
 def centrifugo_server() -> CentrifugoServer:
     server = CentrifugoServer()
+    start_time = datetime.now()
     while not server.ping():
-        time.sleep(0.1)
+        elapsed = datetime.now() - start_time
+        assert (
+            elapsed.total_seconds() < 30
+        ), "Timeout waiting for Centrifugo server to be ready"
+        time.sleep(1.0)
     return server
 
 
