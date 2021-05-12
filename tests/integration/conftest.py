@@ -95,7 +95,7 @@ def opcserver() -> OPCServer:
     start_time = datetime.now()
     while not opc_server.ping():
         elapsed = datetime.now() - start_time
-        assert elapsed.total_seconds() < 10, "Timeout trying to ping OPC-UA server"
-        time.sleep(0.1)
+        assert elapsed.total_seconds() < 30, "Timeout trying to ping OPC-UA server"
+        time.sleep(1.0)
     opc_server.reset()
     return opc_server

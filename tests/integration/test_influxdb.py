@@ -48,8 +48,10 @@ class InfluxDB:
         return list(csv.DictReader(resp.text.splitlines()))
 
     def ping(self) -> bool:
-        resp = requests.get(self.url("ready"))
-        if resp.status_code != 200:
+        try:
+            resp = requests.get(self.url("ready"))
+            resp.raise_for_status()
+        except requests.RequestException:
             return False
         resp = requests.get(self.url("api/v2/setup"))
         return resp.json()["allowed"] is False
@@ -58,8 +60,11 @@ class InfluxDB:
 @pytest.fixture()
 def influxdb() -> InfluxDB:
     _influxdb = InfluxDB()
+    start_time = datetime.now()
     while not _influxdb.ping():
-        time.sleep(0.1)
+        elapsed = datetime.now() - start_time
+        assert elapsed.total_seconds() < 30, "Timeout waiting for InfluxDB to be ready"
+        time.sleep(1.0)
     _influxdb.clear()
     return _influxdb
 
