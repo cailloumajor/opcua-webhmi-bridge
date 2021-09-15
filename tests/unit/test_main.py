@@ -15,7 +15,7 @@ from opcua_webhmi_bridge.config import ConfigError
 from opcua_webhmi_bridge.main import _logger, app, handle_exception, shutdown
 
 
-class ExceptionForTesting(Exception):
+class ExceptionForTestingError(Exception):
     pass
 
 
@@ -29,7 +29,7 @@ async def raising_task() -> None:
         while True:
             await asyncio.sleep(0.1)
     except asyncio.CancelledError:
-        raise ExceptionForTesting("Exception for testing")
+        raise ExceptionForTestingError("Exception for testing")
 
 
 LogRecordsType = Callable[[], List[logging.LogRecord]]
@@ -103,7 +103,7 @@ class TestExceptionHandler:
         patched_shutdown: AsyncMockType,
     ) -> None:
         context = {
-            "exception": ExceptionForTesting("Exception handler test"),
+            "exception": ExceptionForTestingError("Exception handler test"),
             "future": mocker.Mock(**{"get_name.return_value": "test_task"}),
         }
         handle_exception(event_loop, context)
@@ -127,7 +127,7 @@ class TestExceptionHandler:
         patched_shutdown: AsyncMockType,
     ) -> None:
         context = {
-            "exception": ExceptionForTesting("Exception handler test"),
+            "exception": ExceptionForTestingError("Exception handler test"),
             "future": asyncio.Future(),
         }
         handle_exception(event_loop, context)

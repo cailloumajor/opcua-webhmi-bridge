@@ -15,11 +15,11 @@ from opcua_webhmi_bridge.opcua import SIMATIC_NAMESPACE_URI, OPCUAClient
 LogRecordsType = Callable[[], List[logging.LogRecord]]
 
 
-class ExceptionForTesting(Exception):
+class ExceptionForTestingError(Exception):
     pass
 
 
-class InfiniteLoopBreaker(Exception):
+class InfiniteLoopBreakerError(Exception):
     pass
 
 
@@ -145,11 +145,11 @@ def test_task(
     mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
     gotten_node = mocked_client.get_node.return_value
     read_data_value = gotten_node.read_data_value = mocker.AsyncMock(
-        side_effect=InfiniteLoopBreaker
+        side_effect=InfiniteLoopBreakerError
     )
     cm: ContextManager[Any]
     if subscription_success:
-        cm = contextlib.suppress(InfiniteLoopBreaker)
+        cm = contextlib.suppress(InfiniteLoopBreakerError)
     else:
         cm = pytest.raises(FakeUaStatusCodeError)
     with cm:
@@ -288,7 +288,9 @@ def test_before_sleep(
     retry_call_state = mocker.Mock()
     retry_call_state.configure_mock(
         **{
-            "outcome.exception.return_value": ExceptionForTesting("exception text"),
+            "outcome.exception.return_value": ExceptionForTestingError(
+                "exception text"
+            ),
             "next_action.sleep": 42,
         }
     )
@@ -300,7 +302,7 @@ def test_before_sleep(
     assert last_log_record.levelno == logging.INFO
     assert "Retrying OPC client task" in last_log_record.message
     assert "42 seconds" in last_log_record.message
-    assert "ExceptionForTesting: exception text" in last_log_record.message
+    assert "ExceptionForTestingError: exception text" in last_log_record.message
 
 
 def test_task_wrapper(
