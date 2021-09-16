@@ -130,12 +130,17 @@ class OPCUAClient(AsyncTask):
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         """Callback to be called before sleeping on each task retrying."""
         self.set_status(LinkStatus.Down)
-        exc = retry_state.outcome.exception()
+        sleep_time = float("NaN")
+        if (next_action := retry_state.next_action) is not None:  # pragma: no branch
+            sleep_time = next_action.sleep
+        exc_message = "no exception !"
+        if (outcome := retry_state.outcome) is not None:  # pragma: no branch
+            if (exc := outcome.exception()) is not None:  # pragma: no branch
+                exc_message = f"{type(exc).__name__}: {exc}"
         _logger.info(
-            "Retrying OPC client task in %s seconds as it raised %s: %s",
-            retry_state.next_action.sleep,
-            type(exc).__name__,
-            exc,
+            "Retrying OPC client task in %s seconds as it raised %s",
+            sleep_time,
+            exc_message,
         )
 
     async def task(self) -> None:
@@ -148,4 +153,4 @@ class OPCUAClient(AsyncTask):
             ),
             before_sleep=self.before_sleep,
         )
-        await retryer.call(self._task)
+        await retryer(self._task)
