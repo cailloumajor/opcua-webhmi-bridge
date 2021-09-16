@@ -131,11 +131,11 @@ class OPCUAClient(AsyncTask):
         """Callback to be called before sleeping on each task retrying."""
         self.set_status(LinkStatus.Down)
         sleep_time = float("NaN")
-        if (next_action := retry_state.next_action) is not None:
+        if (next_action := retry_state.next_action) is not None:  # pragma: no branch
             sleep_time = next_action.sleep
         exc_message = "no exception !"
-        if (outcome := retry_state.outcome) is not None:
-            if (exc := outcome.exception()) is not None:
+        if (outcome := retry_state.outcome) is not None:  # pragma: no branch
+            if (exc := outcome.exception()) is not None:  # pragma: no branch
                 exc_message = f"{type(exc).__name__}: {exc}"
         _logger.info(
             "Retrying OPC client task in %s seconds as it raised %s",
