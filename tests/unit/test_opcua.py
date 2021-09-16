@@ -311,7 +311,7 @@ def test_task_wrapper(
     mocker: MockerFixture,
 ) -> None:
     mocker.patch.object(opcua_client, "_task")
-    async_retrying = mocker.patch("tenacity.AsyncRetrying", autospec=True)
+    async_retrying = mocker.patch("tenacity.AsyncRetrying", return_value=AsyncMock())
     wait_fixed = mocker.patch("tenacity.wait_fixed")
     retry_if_exception_type = mocker.patch("tenacity.retry_if_exception_type")
     event_loop.run_until_complete(opcua_client.task())
@@ -327,5 +327,5 @@ def test_task_wrapper(
         mocker.call(OSError),
         mocker.call(asyncio.TimeoutError),
     ]
-    call_method = cast(Mock, async_retrying.return_value.call)
-    assert call_method.call_args_list == [mocker.call(opcua_client._task)]
+    call_method = cast(AsyncMock, async_retrying.return_value)
+    assert call_method.await_args_list == [mocker.call(opcua_client._task)]
