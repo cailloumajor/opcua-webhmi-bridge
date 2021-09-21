@@ -9,8 +9,8 @@
             "type": "python",
             "request": "launch",
             "program": ".venv/bin/opcua-agent",
+            "args": ["--env-file", "env/config.env"],
             "console": "integratedTerminal",
-            "envFile": "",
             "justMyCode": false
         },
         {
