@@ -8,7 +8,6 @@
   "packageRules": [
     {
       "matchPackageNames": ["black"],
-      "versioning": "pep440",
       "ignoreUnstable": false
     },
     {
