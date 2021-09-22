@@ -5,6 +5,12 @@
     "config:base"
   ],
   "ignorePaths": [],
+  "packageRules": [
+    {
+      "matchPackageNames": ["black"],
+      "ignoreUnstable": false
+    }
+  ],
   "regexManagers": [
     {
       "fileMatch": [
