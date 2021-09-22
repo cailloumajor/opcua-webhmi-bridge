@@ -8,6 +8,8 @@
   "packageRules": [
     {
       "matchPackageNames": ["black"],
+      "matchManagers": ["poetry"],
+      "versioning": "poetry",
       "ignoreUnstable": false
     }
   ],
