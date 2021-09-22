@@ -11,6 +11,10 @@
       "matchManagers": ["poetry"],
       "versioning": "poetry",
       "ignoreUnstable": false
+    },
+    {
+      "matchFiles": ["tests/integration/requirements.txt"],
+      "rangeStrategy": "replace"
     }
   ],
   "regexManagers": [
