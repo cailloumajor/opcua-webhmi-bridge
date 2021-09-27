@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, NoReturn
 
 import asyncua
 import tenacity
@@ -77,6 +77,12 @@ class OPCUAClient(AsyncTask):
                 _logger.exception("Error subscribing to node %s", node_id)
                 raise
 
+    async def _poll_status(self, client: asyncua.Client) -> NoReturn:
+        server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
+        while True:
+            await asyncio.sleep(STATE_POLL_INTERVAL)
+            await server_state.read_data_value()
+
     async def _task(self) -> None:
         client = await self._create_opc_client()
 
@@ -90,11 +96,7 @@ class OPCUAClient(AsyncTask):
 
             await self._subscribe(client, nsi)
 
-            server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
-
-            while True:
-                await asyncio.sleep(STATE_POLL_INTERVAL)
-                await server_state.read_data_value()
+            await self._poll_status(client)
 
     def set_status(self, status: LinkStatus) -> None:
         """Sets the status of OPC-UA server link.

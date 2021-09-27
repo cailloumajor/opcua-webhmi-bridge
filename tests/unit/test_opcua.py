@@ -170,6 +170,32 @@ def test_subscribe(
         assert "Error subscribing to node" in last_log_record.message
 
 
+def test_poll_status(
+    event_loop: asyncio.AbstractEventLoop,
+    mocker: MockerFixture,
+    opcua_client: OPCUAClient,
+) -> None:
+    mocked_client = mocker.MagicMock()
+    mocked_sleep = mocker.patch("asyncio.sleep")
+    mocked_read_data_value = mocker.AsyncMock(
+        side_effect=[None, None, InfiniteLoopBreakerError]
+    )
+    mocked_client.get_node.return_value.read_data_value = mocked_read_data_value
+
+    with contextlib.suppress(InfiniteLoopBreakerError):
+        event_loop.run_until_complete(opcua_client._poll_status(mocked_client))
+
+    assert mocked_client.get_node.call_args_list == [
+        mocker.call(ObjectIds.Server_ServerStatus_State)
+    ]
+    assert mocked_sleep.await_args_list == [
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
+    ]
+    assert mocked_read_data_value.await_count == 3
+
+
 def test_task(
     event_loop: asyncio.AbstractEventLoop,
     mocker: MockerFixture,
@@ -178,20 +204,15 @@ def test_task(
     mocked_client = mocker.MagicMock()
     mocker.patch.object(opcua_client, "_create_opc_client", return_value=mocked_client)
     mocker.patch.object(opcua_client, "_subscribe")
+    mocker.patch.object(opcua_client, "_poll_status")
     type_node = mocker.sentinel.type_node
     mocked_client.get_namespace_index = mocker.AsyncMock(
         return_value=mocker.sentinel.ns
     )
     mocked_client.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
     mocked_client.load_type_definitions = mocker.AsyncMock()
-    mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
-    mocked_read_data_value = mocker.AsyncMock(
-        side_effect=[None, None, InfiniteLoopBreakerError]
-    )
-    mocked_client.get_node.return_value.read_data_value = mocked_read_data_value
 
-    with contextlib.suppress(InfiniteLoopBreakerError):
-        event_loop.run_until_complete(opcua_client._task())
+    event_loop.run_until_complete(opcua_client._task())
 
     assert mocked_client.__aenter__.await_count == 1
     assert mocked_client.get_namespace_index.await_args_list == [
@@ -207,15 +228,8 @@ def test_task(
     assert mocked_subscribe.await_args_list == [
         mocker.call(mocked_client, mocker.sentinel.ns)
     ]
-    assert mocked_client.get_node.call_args_list == [
-        mocker.call(ObjectIds.Server_ServerStatus_State)
-    ]
-    assert mocked_sleep.await_args_list == [
-        mocker.call(STATE_POLL_INTERVAL),
-        mocker.call(STATE_POLL_INTERVAL),
-        mocker.call(STATE_POLL_INTERVAL),
-    ]
-    assert mocked_read_data_value.await_count == 3
+    mocked_poll_status = cast(AsyncMock, opcua_client._poll_status)
+    assert mocked_poll_status.await_args_list == [mocker.call(mocked_client)]
 
 
 class TestSetStatus:
