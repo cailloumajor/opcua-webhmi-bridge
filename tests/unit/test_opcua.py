@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 from typing import Any, Callable, ContextManager, List, Union, cast
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
@@ -130,7 +130,7 @@ def test_subscribe(
     opcua_client: OPCUAClient,
     subscription_success: bool,
 ) -> None:
-    mocked_client = MagicMock()
+    mocked_client = mocker.MagicMock()
     nsi = mocker.sentinel.nsi
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     mocked_client.create_subscription = mocker.AsyncMock()
@@ -175,10 +175,8 @@ def test_task(
     mocker: MockerFixture,
     opcua_client: OPCUAClient,
 ) -> None:
-    mocked_client = MagicMock()
-    mocker.patch.object(
-        opcua_client, "_create_opc_client", new=AsyncMock(return_value=mocked_client)
-    )
+    mocked_client = mocker.MagicMock()
+    mocker.patch.object(opcua_client, "_create_opc_client", return_value=mocked_client)
     mocker.patch.object(opcua_client, "_subscribe")
     type_node = mocker.sentinel.type_node
     mocked_client.get_namespace_index = mocker.AsyncMock(
@@ -342,7 +340,9 @@ def test_task_wrapper(
     mocker: MockerFixture,
 ) -> None:
     mocker.patch.object(opcua_client, "_task")
-    async_retrying = mocker.patch("tenacity.AsyncRetrying", return_value=AsyncMock())
+    async_retrying = mocker.patch(
+        "tenacity.AsyncRetrying", return_value=mocker.AsyncMock()
+    )
     wait_fixed = mocker.patch("tenacity.wait_fixed")
     retry_if_exception_type = mocker.patch("tenacity.retry_if_exception_type")
     event_loop.run_until_complete(opcua_client.task())
