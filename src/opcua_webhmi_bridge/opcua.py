@@ -93,7 +93,7 @@ class OPCUAClient(AsyncTask):
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
 
             while True:
-                await asyncio.sleep(5)
+                await asyncio.sleep(STATE_POLL_INTERVAL)
                 await server_state.read_data_value()
 
     def set_status(self, status: LinkStatus) -> None:
