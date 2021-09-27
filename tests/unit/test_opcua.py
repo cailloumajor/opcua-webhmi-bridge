@@ -1,16 +1,21 @@
 import asyncio
 import contextlib
 import logging
-from typing import Any, Callable, ContextManager, List, cast
+from typing import Any, Callable, ContextManager, List, Union, cast
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from asyncua.ua import NodeId, ObjectIds
 from pytest import LogCaptureFixture
 from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.messages import LinkStatus
-from opcua_webhmi_bridge.opcua import SIMATIC_NAMESPACE_URI, OPCUAClient
+from opcua_webhmi_bridge.opcua import (
+    SIMATIC_NAMESPACE_URI,
+    STATE_POLL_INTERVAL,
+    OPCUAClient,
+)
 
 LogRecordsType = Callable[[], List[logging.LogRecord]]
 
@@ -116,9 +121,9 @@ def test_create_opc_client(
 @pytest.mark.parametrize(
     "subscription_success",
     [True, False],
-    ids=["Subscription success", "Subscription failure"],
+    ids=["Subscription success", "Subscription error"],
 )
-def test_task(
+def test_subscribe(
     event_loop: asyncio.AbstractEventLoop,
     log_records: LogRecordsType,
     mocker: MockerFixture,
@@ -126,34 +131,70 @@ def test_task(
     subscription_success: bool,
 ) -> None:
     mocked_client = MagicMock()
-    mocker.patch.object(
-        opcua_client, "_create_opc_client", new=AsyncMock(return_value=mocked_client)
-    )
+    nsi = mocker.sentinel.nsi
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
-    type_node = mocker.sentinel.type_node
-    mocked_client.get_namespace_index = mocker.AsyncMock(
-        return_value=mocker.sentinel.ns
-    )
-    mocked_client.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
-    mocked_client.load_type_definitions = mocker.AsyncMock()
     mocked_client.create_subscription = mocker.AsyncMock()
     subscription = mocked_client.create_subscription.return_value
-    sub_results = [12, 34, 56, 78, 910]
+    sub_results: List[Union[int, FakeUaStatusCodeError]] = [12, 34, 56, 78, 910]
     if not subscription_success:
-        sub_results[-2] = mocker.Mock(**{"check.side_effect": FakeUaStatusCodeError})
-    subscription.subscribe_data_change = mocker.AsyncMock(return_value=sub_results)
-    mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
-    gotten_node = mocked_client.get_node.return_value
-    read_data_value = gotten_node.read_data_value = mocker.AsyncMock(
-        side_effect=InfiniteLoopBreakerError
-    )
+        sub_results[-2] = FakeUaStatusCodeError()
+    subscription.subscribe_data_change = mocker.AsyncMock(side_effect=sub_results)
+
     cm: ContextManager[Any]
     if subscription_success:
         cm = contextlib.suppress(InfiniteLoopBreakerError)
     else:
         cm = pytest.raises(FakeUaStatusCodeError)
     with cm:
+        event_loop.run_until_complete(opcua_client._subscribe(mocked_client, nsi))
+
+    assert mocked_client.create_subscription.await_args_list == [
+        mocker.call(1000, opcua_client)
+    ]
+    get_node = cast(Mock, mocked_client.get_node)
+    assert get_node.call_args_list == [
+        mocker.call(NodeId("monitornode1", mocker.sentinel.nsi)),
+        mocker.call(NodeId("monitornode2", mocker.sentinel.nsi)),
+        mocker.call(NodeId("recnode1", mocker.sentinel.nsi)),
+        mocker.call(NodeId("recnode2", mocker.sentinel.nsi)),
+    ]
+    assert subscription.subscribe_data_change.await_args_list == [
+        mocker.call(get_node.return_value),
+        mocker.call(get_node.return_value),
+        mocker.call(get_node.return_value),
+        mocker.call(get_node.return_value),
+    ]
+    if not subscription_success:
+        last_log_record = log_records()[-1]
+        assert last_log_record.levelno == logging.ERROR
+        assert "Error subscribing to node" in last_log_record.message
+
+
+def test_task(
+    event_loop: asyncio.AbstractEventLoop,
+    mocker: MockerFixture,
+    opcua_client: OPCUAClient,
+) -> None:
+    mocked_client = MagicMock()
+    mocker.patch.object(
+        opcua_client, "_create_opc_client", new=AsyncMock(return_value=mocked_client)
+    )
+    mocker.patch.object(opcua_client, "_subscribe")
+    type_node = mocker.sentinel.type_node
+    mocked_client.get_namespace_index = mocker.AsyncMock(
+        return_value=mocker.sentinel.ns
+    )
+    mocked_client.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
+    mocked_client.load_type_definitions = mocker.AsyncMock()
+    mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
+    mocked_read_data_value = mocker.AsyncMock(
+        side_effect=[None, None, InfiniteLoopBreakerError]
+    )
+    mocked_client.get_node.return_value.read_data_value = mocked_read_data_value
+
+    with contextlib.suppress(InfiniteLoopBreakerError):
         event_loop.run_until_complete(opcua_client._task())
+
     assert mocked_client.__aenter__.await_count == 1
     assert mocked_client.get_namespace_index.await_args_list == [
         mocker.call(SIMATIC_NAMESPACE_URI)
@@ -164,29 +205,19 @@ def test_task(
     assert mocked_client.load_type_definitions.await_args_list == [
         mocker.call([type_node])
     ]
-    get_node = cast(Mock, mocked_client.get_node)
-    expected_get_node_calls = [
-        mocker.call("ns=sentinel.ns;s=monitornode1"),
-        mocker.call("ns=sentinel.ns;s=monitornode2"),
-        mocker.call("ns=sentinel.ns;s=recnode1"),
-        mocker.call("ns=sentinel.ns;s=recnode2"),
+    mocked_subscribe = cast(AsyncMock, opcua_client._subscribe)
+    assert mocked_subscribe.await_args_list == [
+        mocker.call(mocked_client, mocker.sentinel.ns)
     ]
-    if subscription_success:
-        expected_get_node_calls.append(mocker.call(2259))
-    assert get_node.call_args_list == expected_get_node_calls
-    assert mocked_client.create_subscription.await_args_list == [
-        mocker.call(1000, opcua_client)
+    assert mocked_client.get_node.call_args_list == [
+        mocker.call(ObjectIds.Server_ServerStatus_State)
     ]
-    assert subscription.subscribe_data_change.await_args_list == [
-        mocker.call([gotten_node, gotten_node, gotten_node, gotten_node])
+    assert mocked_sleep.await_args_list == [
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
     ]
-    if subscription_success:
-        assert mocked_sleep.await_args_list == [mocker.call(5)]
-        assert read_data_value.await_args_list == [mocker.call()]
-    else:
-        last_log_record = log_records()[-1]
-        assert last_log_record.levelno == logging.ERROR
-        assert "Error subscribing to node" in last_log_record.message
+    assert mocked_read_data_value.await_count == 3
 
 
 class TestSetStatus:

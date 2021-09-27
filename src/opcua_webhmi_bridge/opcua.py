@@ -19,6 +19,7 @@ from .library import AsyncTask
 from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
+STATE_POLL_INTERVAL = 5
 
 _logger = logging.getLogger(__name__)
 
@@ -65,31 +66,29 @@ class OPCUAClient(AsyncTask):
             )
         return client
 
+    async def _subscribe(self, client: asyncua.Client, ns_index: int) -> None:
+        sub_nodes_ids = self._config.monitor_nodes + self._config.record_nodes
+        subscription = await client.create_subscription(1000, self)
+        for node_id in sub_nodes_ids:
+            node = client.get_node(ua.NodeId(node_id, ns_index))
+            try:
+                await subscription.subscribe_data_change(node)
+            except UaStatusCodeError:
+                _logger.exception("Error subscribing to node %s", node_id)
+                raise
+
     async def _task(self) -> None:
         client = await self._create_opc_client()
 
         async with client:
-            ns = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
+            nsi = await client.get_namespace_index(SIMATIC_NAMESPACE_URI)
 
             simatic_types_var = await client.nodes.opc_binary.get_child(
-                f"{ns}:SimaticStructures"
+                f"{nsi}:SimaticStructures"
             )
             await client.load_type_definitions([simatic_types_var])
 
-            sub_nodes_ids = self._config.monitor_nodes + self._config.record_nodes
-            sub_nodes = [
-                client.get_node(f"ns={ns};s={node_id}") for node_id in sub_nodes_ids
-            ]
-            subscription = await client.create_subscription(1000, self)
-            sub_results = await subscription.subscribe_data_change(sub_nodes)
-            for index, result in enumerate(sub_results):
-                try:
-                    result.check()
-                except AttributeError:  # subscription succeeded (result is an integer)
-                    pass
-                except UaStatusCodeError:  # subscription failed (result is asynua.ua.StatusCode)
-                    _logger.exception("Error subscribing to node %s", sub_nodes[index])
-                    raise
+            await self._subscribe(client, nsi)
 
             server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
 
