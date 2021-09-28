@@ -16,7 +16,7 @@ from .config import OPCSettings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
 from .library import AsyncTask
-from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
+from .messages import LinkStatus, OPCDataMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 STATE_POLL_INTERVAL = 5
@@ -122,7 +122,7 @@ class OPCUAClient(AsyncTask):
         node_id = node.nodeid.Identifier
         _logger.debug("datachange_notification for %s %s", node_id, val)
         self.set_status(LinkStatus.Up)
-        message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
+        message = OPCDataMessage(node_id=node_id, ua_object=val)
         self._centrifugo_proxy_server.record_last_opc_data(message)
         self._frontend_messaging_writer.put(message)
         if node_id in self._config.record_nodes:

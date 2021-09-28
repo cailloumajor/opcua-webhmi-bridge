@@ -298,9 +298,7 @@ def test_datachange_notification(
     node_id: str,
     opcua_client: OPCUAClient,
 ) -> None:
-    data_change_message_mock = mocker.patch(
-        "opcua_webhmi_bridge.opcua.OPCDataChangeMessage"
-    )
+    data_change_message_mock = mocker.patch("opcua_webhmi_bridge.opcua.OPCDataMessage")
     node = mocker.Mock()
     node.configure_mock(**{"nodeid.Identifier": node_id})
     value = mocker.sentinel.value

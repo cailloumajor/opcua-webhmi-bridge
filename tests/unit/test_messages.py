@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-from opcua_webhmi_bridge.messages import BaseMessage, OPCDataChangeMessage
+import pytest
+
+from opcua_webhmi_bridge.messages import BaseMessage, MessageType, OPCDataMessage
 
 
 @dataclass
@@ -33,6 +35,20 @@ class RootType:
     ua_types = [("field1", "SubType1"), ("field2", "SubType2"), ("field3", "Bool")]
 
 
+@pytest.mark.parametrize(
+    ["message_type", "expected"],
+    [
+        (MessageType.OPC_DATA, "proxied:opc_data"),
+        (MessageType.OPC_STATUS, "proxied:opc_status"),
+        (MessageType.HEARTBEAT, "heartbeat"),
+    ],
+)
+def test_messagetype_centrifugo_channel(
+    message_type: MessageType, expected: str
+) -> None:
+    assert message_type.centrifugo_channel == expected
+
+
 def test_message_frontend_data() -> None:
     message = MessageForTesting(42, "test")
     assert message.frontend_data == {
@@ -54,7 +70,7 @@ def test_opc_data_conversion() -> None:
             False,
         ),
     ]
-    message = OPCDataChangeMessage("test_node", opc_data)
+    message = OPCDataMessage("test_node", opc_data)
     assert message.payload == [
         {
             "field1": {"field1": "abcd", "field2": 1},

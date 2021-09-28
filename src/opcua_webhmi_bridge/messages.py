@@ -5,6 +5,8 @@ import json
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Any, Dict, List, Union
 
+PROXIED_CHANNEL_NAMESPACE = "proxied"
+
 JsonScalar = Union[str, int, float, bool, None]
 DataChangePayload = Union[
     Dict[str, Any],
@@ -16,9 +18,17 @@ DataChangePayload = Union[
 class MessageType(str, enum.Enum):
     """Enumeration of message types."""
 
-    OPC_DATA_CHANGE = "proxied:opc_data_change"
-    OPC_STATUS = "proxied:opc_status"
+    OPC_DATA = "opc_data"
+    OPC_STATUS = "opc_status"
     HEARTBEAT = "heartbeat"
+
+    @property
+    def centrifugo_channel(self) -> str:
+        """Returns the Centrifugo channel name for this member."""
+        channel: str = self.value
+        if self.name.startswith("OPC_"):
+            channel = PROXIED_CHANNEL_NAMESPACE + ":" + channel
+        return channel
 
 
 class OPCUAEncoder(json.JSONEncoder):
@@ -48,8 +58,8 @@ class BaseMessage:
 
 
 @dataclass
-class OPCDataChangeMessage(BaseMessage):
-    """OPC-UA data change message.
+class OPCDataMessage(BaseMessage):
+    """OPC-UA data message.
 
     Attributes:
         message_type: Same as base class.
@@ -57,7 +67,7 @@ class OPCDataChangeMessage(BaseMessage):
         payload: The flattened representation of OPC-UA data.
     """
 
-    message_type = MessageType.OPC_DATA_CHANGE
+    message_type = MessageType.OPC_DATA
     node_id: str
     payload: DataChangePayload = field(init=False)
     ua_object: InitVar[Any]

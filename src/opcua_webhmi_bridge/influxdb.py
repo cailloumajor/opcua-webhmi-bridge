@@ -12,7 +12,7 @@ from yarl import URL
 
 from .config import InfluxSettings
 from .library import MessageConsumer
-from .messages import OPCDataChangeMessage
+from .messages import OPCDataMessage
 
 # A JSON scalar can be null, but data here comes from OPC-UA,
 # where a null value is not acceptable.
@@ -82,8 +82,8 @@ def flatten(data: Dict[str, Any]) -> Flattened:
     return data
 
 
-def to_influx(message: OPCDataChangeMessage) -> str:
-    """Converts OPC-UA data change message to InfluxDB line protocol.
+def to_influx(message: OPCDataMessage) -> str:
+    """Converts OPC-UA data message to InfluxDB line protocol.
 
     Args:
         message: The OPC-UA data message.
@@ -135,7 +135,7 @@ def to_influx(message: OPCDataChangeMessage) -> str:
     return "\n".join(lines)
 
 
-class InfluxDBWriter(MessageConsumer[OPCDataChangeMessage]):
+class InfluxDBWriter(MessageConsumer[OPCDataMessage]):
     """Handles writing OPC-UA data to InfluxDB."""
 
     logger = _logger

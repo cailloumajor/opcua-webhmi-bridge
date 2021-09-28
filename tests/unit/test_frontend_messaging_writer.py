@@ -44,7 +44,7 @@ def messaging_writer(
 def fake_message(mocker: MockerFixture) -> Any:
     return mocker.Mock(
         **{
-            "message_type.value": "test_message",
+            "message_type.centrifugo_channel": "test_channel",
             "frontend_data": {"payload": "test_payload"},
         }
     )
@@ -73,7 +73,7 @@ class TestTask:
     @pytest.mark.parametrize(
         "testcase",
         [
-            RequestSuccesTestCase("test_message", "test_payload", False),
+            RequestSuccesTestCase("test_channel", "test_payload", False),
             RequestSuccesTestCase("heartbeat", None, True),
         ],
         ids=[

@@ -112,7 +112,7 @@ def test_smoketest(
         ), "Timeout waiting for Centrifugo subscribe proxy"
         time.sleep(1.0)
         assert process.poll() is None
-    centrifugo_client.subscribe("proxied:opc_data_change")
+    centrifugo_client.subscribe("proxied:opc_data")
     centrifugo_client.subscribe("proxied:opc_status")
     centrifugo_client.subscribe("heartbeat")
     start_time = datetime.now()
@@ -127,5 +127,5 @@ def test_smoketest(
         history = centrifugo_server.history(channel)
         return len(history["result"]["publications"])
 
-    assert publication_length("proxied:opc_data_change") == 2
+    assert publication_length("proxied:opc_data") == 2
     assert publication_length("proxied:opc_status") == 2

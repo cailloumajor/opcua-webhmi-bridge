@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 from json.decoder import JSONDecodeError
 from typing import Dict, Union
 
@@ -10,14 +11,15 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, web
 from .config import CentrifugoSettings
 from .library import AsyncTask, MessageConsumer
 from .messages import (
+    PROXIED_CHANNEL_NAMESPACE,
     HeartBeatMessage,
     LinkStatus,
     MessageType,
-    OPCDataChangeMessage,
+    OPCDataMessage,
     OPCStatusMessage,
 )
 
-OPCMessage = Union[OPCDataChangeMessage, OPCStatusMessage]
+OPCMessage = Union[OPCDataMessage, OPCStatusMessage]
 
 HEARTBEAT_TIMEOUT = 5
 
@@ -58,7 +60,7 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                 command = {
                     "method": "publish",
                     "params": {
-                        "channel": message.message_type.value,
+                        "channel": message.message_type.centrifugo_channel,
                         "data": message.frontend_data,
                     },
                 }
@@ -94,14 +96,14 @@ class CentrifugoProxyServer(AsyncTask):
         """
         self._config = config
         self._messaging_writer = messaging_writer
-        self._last_opc_data: Dict[str, OPCDataChangeMessage] = {}
+        self._last_opc_data: Dict[str, OPCDataMessage] = {}
         self.last_opc_status = OPCStatusMessage(LinkStatus.Down)
 
     def clear_last_opc_data(self) -> None:
         """Clears the record of last OPC-UA data received."""
         self._last_opc_data = {}
 
-    def record_last_opc_data(self, message: OPCDataChangeMessage) -> None:
+    def record_last_opc_data(self, message: OPCDataMessage) -> None:
         """Records the last OPC-UA data received for each node ID.
 
         Args:
@@ -124,7 +126,12 @@ class CentrifugoProxyServer(AsyncTask):
             raise web.HTTPBadRequest(reason="Bad request format")
         if channel is None:
             return _error(1000, "Missing channel field")
-        elif channel == MessageType.OPC_DATA_CHANGE:
+        else:
+            try:
+                channel = re.sub(rf"^{PROXIED_CHANNEL_NAMESPACE}:", "", channel)
+            except TypeError:
+                raise web.HTTPBadRequest(reason="Channel must be a string")
+        if channel == MessageType.OPC_DATA:
             for message in self._last_opc_data.values():
                 self._messaging_writer.put(message)
         elif channel == MessageType.OPC_STATUS:
