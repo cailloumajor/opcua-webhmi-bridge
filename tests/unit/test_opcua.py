@@ -1,7 +1,8 @@
 import asyncio
 import contextlib
 import logging
-from typing import Any, Callable, ContextManager, List, Union, cast
+import time
+from typing import Any, Callable, ContextManager, Iterator, List, Union, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -50,10 +51,9 @@ def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
 @pytest.fixture
 def opcua_client(mocker: MockerFixture) -> OPCUAClient:
     config = mocker.Mock(
-        cert_file="certFile",
-        private_key_file="keyFile",
         monitor_nodes=["monitornode1", "monitornode2"],
         record_nodes=["recnode1", "recnode2"],
+        record_interval=42,
         retry_delay=1234,
     )
     centrifugo_proxy_server = mocker.Mock(last_opc_status=None)
@@ -135,9 +135,9 @@ def test_subscribe(
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     mocked_client.create_subscription = mocker.AsyncMock()
     subscription = mocked_client.create_subscription.return_value
-    sub_results: List[Union[int, FakeUaStatusCodeError]] = [12, 34, 56, 78, 910]
+    sub_results: List[Union[int, FakeUaStatusCodeError]] = [12, 34]
     if not subscription_success:
-        sub_results[-2] = FakeUaStatusCodeError()
+        sub_results[-1] = FakeUaStatusCodeError()
     subscription.subscribe_data_change = mocker.AsyncMock(side_effect=sub_results)
 
     cm: ContextManager[Any]
@@ -155,12 +155,8 @@ def test_subscribe(
     assert get_node.call_args_list == [
         mocker.call(NodeId("monitornode1", mocker.sentinel.nsi)),
         mocker.call(NodeId("monitornode2", mocker.sentinel.nsi)),
-        mocker.call(NodeId("recnode1", mocker.sentinel.nsi)),
-        mocker.call(NodeId("recnode2", mocker.sentinel.nsi)),
     ]
     assert subscription.subscribe_data_change.await_args_list == [
-        mocker.call(get_node.return_value),
-        mocker.call(get_node.return_value),
         mocker.call(get_node.return_value),
         mocker.call(get_node.return_value),
     ]
@@ -168,6 +164,103 @@ def test_subscribe(
         last_log_record = log_records()[-1]
         assert last_log_record.levelno == logging.ERROR
         assert "Error subscribing to node" in last_log_record.message
+
+
+def test_poll_status(
+    event_loop: asyncio.AbstractEventLoop,
+    mocker: MockerFixture,
+    opcua_client: OPCUAClient,
+) -> None:
+    mocked_client = mocker.MagicMock()
+    mocked_sleep = mocker.patch("asyncio.sleep")
+    mocked_read_data_value = mocker.AsyncMock(
+        side_effect=[None, None, InfiniteLoopBreakerError]
+    )
+    mocked_client.get_node.return_value.read_data_value = mocked_read_data_value
+
+    with contextlib.suppress(InfiniteLoopBreakerError):
+        event_loop.run_until_complete(opcua_client._poll_status(mocked_client))
+
+    assert mocked_client.get_node.call_args_list == [
+        mocker.call(ObjectIds.Server_ServerStatus_State)
+    ]
+    assert mocked_sleep.await_args_list == [
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
+        mocker.call(STATE_POLL_INTERVAL),
+    ]
+    assert mocked_read_data_value.await_count == 3
+
+
+def read_values_side_effect(
+    *args: Any, **kwargs: Any  # noqa: U100
+) -> Iterator[List[str]]:
+    pass_count = 0
+    while True:
+        if pass_count == 0:
+            yield ["val1", "val2"]
+        elif pass_count == 1:
+            time.sleep(0.5)
+            yield ["val3", "val4"]
+        elif pass_count >= 2:
+            raise InfiniteLoopBreakerError()
+        pass_count += 1
+
+
+def test_poll_nodes(
+    event_loop: asyncio.AbstractEventLoop,
+    mocker: MockerFixture,
+    opcua_client: OPCUAClient,
+) -> None:
+    mocked_client = mocker.MagicMock()
+    mocked_nodes = [
+        mocker.Mock(**{"nodeid.Identifier": mocker.sentinel.node1}),
+        mocker.Mock(**{"nodeid.Identifier": mocker.sentinel.node2}),
+    ]
+    mocked_client.get_node.side_effect = mocked_nodes
+    mocked_client.read_values = mocker.AsyncMock(side_effect=read_values_side_effect())
+    data_message_mock = mocker.patch(
+        "opcua_webhmi_bridge.opcua.OPCDataMessage",
+        side_effect=[
+            mocker.sentinel.message1,
+            mocker.sentinel.message2,
+            mocker.sentinel.message3,
+            mocker.sentinel.message4,
+        ],
+    )
+    mocked_sleep = mocker.patch("asyncio.sleep")
+
+    with contextlib.suppress(InfiniteLoopBreakerError):
+        event_loop.run_until_complete(
+            opcua_client._poll_nodes(mocked_client, mocker.sentinel.nsi)
+        )
+
+    assert mocked_client.get_node.call_args_list == [
+        mocker.call(NodeId("recnode1", mocker.sentinel.nsi)),
+        mocker.call(NodeId("recnode2", mocker.sentinel.nsi)),
+    ]
+    assert mocked_client.read_values.await_args_list == [
+        mocker.call(mocked_nodes),
+        mocker.call(mocked_nodes),
+        mocker.call(mocked_nodes),
+    ]
+    assert mocked_sleep.await_args_list == [
+        mocker.call(pytest.approx(42, abs=0.1)),
+        mocker.call(pytest.approx(41.5, abs=0.1)),
+    ]
+    assert data_message_mock.call_args_list == [
+        mocker.call(mocker.sentinel.node1, "val1"),
+        mocker.call(mocker.sentinel.node2, "val2"),
+        mocker.call(mocker.sentinel.node1, "val3"),
+        mocker.call(mocker.sentinel.node2, "val4"),
+    ]
+    mocked_influx_put = cast(Mock, opcua_client._influx_writer.put)
+    assert mocked_influx_put.call_args_list == [
+        mocker.call(mocker.sentinel.message1),
+        mocker.call(mocker.sentinel.message2),
+        mocker.call(mocker.sentinel.message3),
+        mocker.call(mocker.sentinel.message4),
+    ]
 
 
 def test_task(
@@ -178,19 +271,18 @@ def test_task(
     mocked_client = mocker.MagicMock()
     mocker.patch.object(opcua_client, "_create_opc_client", return_value=mocked_client)
     mocker.patch.object(opcua_client, "_subscribe")
+    mocker.patch.object(opcua_client, "_poll_status")
+    mocker.patch.object(
+        opcua_client, "_poll_nodes", side_effect=ExceptionForTestingError
+    )
     type_node = mocker.sentinel.type_node
     mocked_client.get_namespace_index = mocker.AsyncMock(
         return_value=mocker.sentinel.ns
     )
     mocked_client.nodes.opc_binary.get_child = mocker.AsyncMock(return_value=type_node)
     mocked_client.load_type_definitions = mocker.AsyncMock()
-    mocked_sleep: AsyncMock = mocker.patch("asyncio.sleep")
-    mocked_read_data_value = mocker.AsyncMock(
-        side_effect=[None, None, InfiniteLoopBreakerError]
-    )
-    mocked_client.get_node.return_value.read_data_value = mocked_read_data_value
 
-    with contextlib.suppress(InfiniteLoopBreakerError):
+    with pytest.raises(ExceptionForTestingError):
         event_loop.run_until_complete(opcua_client._task())
 
     assert mocked_client.__aenter__.await_count == 1
@@ -207,15 +299,12 @@ def test_task(
     assert mocked_subscribe.await_args_list == [
         mocker.call(mocked_client, mocker.sentinel.ns)
     ]
-    assert mocked_client.get_node.call_args_list == [
-        mocker.call(ObjectIds.Server_ServerStatus_State)
+    mocked_poll_status = cast(AsyncMock, opcua_client._poll_status)
+    assert mocked_poll_status.await_args_list == [mocker.call(mocked_client)]
+    mocked_poll_nodes = cast(AsyncMock, opcua_client._poll_nodes)
+    assert mocked_poll_nodes.await_args_list == [
+        mocker.call(mocked_client, mocker.sentinel.ns)
     ]
-    assert mocked_sleep.await_args_list == [
-        mocker.call(STATE_POLL_INTERVAL),
-        mocker.call(STATE_POLL_INTERVAL),
-        mocker.call(STATE_POLL_INTERVAL),
-    ]
-    assert mocked_read_data_value.await_count == 3
 
 
 class TestSetStatus:
@@ -267,28 +356,13 @@ class TestSetStatus:
         ]
 
 
-@pytest.mark.parametrize(
-    ["node_id", "influx_write"],
-    [
-        ("monitornode1", False),
-        ("recnode1", True),
-    ],
-    ids=[
-        "Not recorded node",
-        "Recorded node",
-    ],
-)
 def test_datachange_notification(
-    influx_write: bool,
     mocker: MockerFixture,
-    node_id: str,
     opcua_client: OPCUAClient,
 ) -> None:
-    data_change_message_mock = mocker.patch(
-        "opcua_webhmi_bridge.opcua.OPCDataChangeMessage"
-    )
+    data_change_message_mock = mocker.patch("opcua_webhmi_bridge.opcua.OPCDataMessage")
     node = mocker.Mock()
-    node.configure_mock(**{"nodeid.Identifier": node_id})
+    node.configure_mock(**{"nodeid.Identifier": "monitornode1"})
     value = mocker.sentinel.value
     mocker.patch.object(opcua_client, "set_status")
     opcua_client.datachange_notification(node, value, mocker.Mock())
@@ -296,7 +370,7 @@ def test_datachange_notification(
     message_instance = data_change_message_mock.return_value
     assert set_status.call_args_list == [mocker.call(LinkStatus.Up)]
     assert data_change_message_mock.call_args_list == [
-        mocker.call(node_id=node_id, ua_object=value)
+        mocker.call(node_id="monitornode1", ua_object=value)
     ]
     record_last_opc_data = cast(
         Mock, opcua_client._centrifugo_proxy_server.record_last_opc_data
@@ -305,8 +379,7 @@ def test_datachange_notification(
     messaging_writer_put = cast(Mock, opcua_client._frontend_messaging_writer.put)
     assert messaging_writer_put.call_args_list == [mocker.call(message_instance)]
     influx_writer_put = cast(Mock, opcua_client._influx_writer.put)
-    expected_influx_put_call = [mocker.call(message_instance)] if influx_write else []
-    assert influx_writer_put.call_args_list == expected_influx_put_call
+    influx_writer_put.assert_not_called()
 
 
 def test_before_sleep(

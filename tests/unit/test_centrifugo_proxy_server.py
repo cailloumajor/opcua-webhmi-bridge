@@ -51,10 +51,12 @@ class TestCentrifugoSubscribe:
         [
             (None, 500, "JSON decode error"),
             ([], 400, "Bad request format"),
+            ({"channel": 1234}, 400, "Channel must be a string"),
         ],
         ids=[
             "Bad JSON",
             "Bad format",
+            "Non-string channel",
         ],
     )
     async def test_http_error(
@@ -98,7 +100,7 @@ class TestCentrifugoSubscribe:
         response_json = await response.json()
         assert response_json["error"] == expected_error
 
-    async def test_opc_data_change(
+    async def test_opc_data(
         self,
         aiohttp_client: ClientFixture,
         aiohttp_raw_server: RawServerFixture,
@@ -111,7 +113,7 @@ class TestCentrifugoSubscribe:
         }
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)
         client = await aiohttp_client(server)
-        await client.post("/", json={"channel": "proxied:opc_data_change"})
+        await client.post("/", json={"channel": "proxied:opc_data"})
         put = cast(MockType, proxy_server._messaging_writer.put)
         expected_calls = [((m,),) for m in messages]
         assert put.call_args_list == expected_calls

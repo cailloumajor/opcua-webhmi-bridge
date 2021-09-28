@@ -2,7 +2,8 @@
 
 import asyncio
 import logging
-from typing import Any
+import time
+from typing import Any, NoReturn
 
 import asyncua
 import tenacity
@@ -16,7 +17,7 @@ from .config import OPCSettings
 from .frontend_messaging import CentrifugoProxyServer, FrontendMessagingWriter
 from .influxdb import InfluxDBWriter
 from .library import AsyncTask
-from .messages import LinkStatus, OPCDataChangeMessage, OPCStatusMessage
+from .messages import LinkStatus, OPCDataMessage, OPCStatusMessage
 
 SIMATIC_NAMESPACE_URI = "http://www.siemens.com/simatic-s7-opcua"
 STATE_POLL_INTERVAL = 5
@@ -67,15 +68,34 @@ class OPCUAClient(AsyncTask):
         return client
 
     async def _subscribe(self, client: asyncua.Client, ns_index: int) -> None:
-        sub_nodes_ids = self._config.monitor_nodes + self._config.record_nodes
         subscription = await client.create_subscription(1000, self)
-        for node_id in sub_nodes_ids:
+        for node_id in self._config.monitor_nodes:
             node = client.get_node(ua.NodeId(node_id, ns_index))
             try:
                 await subscription.subscribe_data_change(node)
             except UaStatusCodeError:
                 _logger.exception("Error subscribing to node %s", node_id)
                 raise
+
+    async def _poll_status(self, client: asyncua.Client) -> NoReturn:
+        server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
+        while True:
+            await asyncio.sleep(STATE_POLL_INTERVAL)
+            await server_state.read_data_value()
+
+    async def _poll_nodes(self, client: asyncua.Client, nsi: int) -> NoReturn:
+        polled_nodes = [
+            client.get_node(ua.NodeId(node_id, nsi))
+            for node_id in self._config.record_nodes
+        ]
+        while True:
+            last_time = time.monotonic()
+            values = await client.read_values(polled_nodes)
+            for node, value in zip(polled_nodes, values):
+                message = OPCDataMessage(node.nodeid.Identifier, value)
+                self._influx_writer.put(message)
+            elapsed = time.monotonic() - last_time
+            await asyncio.sleep(self._config.record_interval - elapsed)
 
     async def _task(self) -> None:
         client = await self._create_opc_client()
@@ -90,11 +110,17 @@ class OPCUAClient(AsyncTask):
 
             await self._subscribe(client, nsi)
 
-            server_state = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
-
-            while True:
-                await asyncio.sleep(STATE_POLL_INTERVAL)
-                await server_state.read_data_value()
+            coros = [
+                self._poll_status(client),
+                self._poll_nodes(client, nsi),
+            ]
+            tasks = [asyncio.create_task(coro) for coro in coros]
+            try:
+                await asyncio.gather(*tasks)
+            except BaseException as exc:
+                for task in tasks:
+                    task.cancel()
+                raise exc
 
     def set_status(self, status: LinkStatus) -> None:
         """Sets the status of OPC-UA server link.
@@ -120,11 +146,9 @@ class OPCUAClient(AsyncTask):
         node_id = node.nodeid.Identifier
         _logger.debug("datachange_notification for %s %s", node_id, val)
         self.set_status(LinkStatus.Up)
-        message = OPCDataChangeMessage(node_id=node_id, ua_object=val)
+        message = OPCDataMessage(node_id=node_id, ua_object=val)
         self._centrifugo_proxy_server.record_last_opc_data(message)
         self._frontend_messaging_writer.put(message)
-        if node_id in self._config.record_nodes:
-            self._influx_writer.put(message)
 
     def before_sleep(self, retry_state: tenacity.RetryCallState) -> None:
         """Callback to be called before sleeping on each task retrying."""

@@ -10,7 +10,7 @@ services:
       - -c
       - |
         . .venv/bin/activate
-        pip install -r requirements.txt
+        pip install -r tests/integration/requirements.txt
         pytest -vv tests/integration
     depends_on:
       - centrifugo
@@ -21,7 +21,6 @@ services:
       - PYTHONUNBUFFERED=1
     init: true
     volumes:
-      - ./requirements.txt:/app/requirements.txt:ro
       - ..:/app/tests:ro
 
   opc-server:
