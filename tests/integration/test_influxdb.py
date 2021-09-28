@@ -81,20 +81,9 @@ def test_smoketest(
         INFLUXDB_BUCKET=INFLUXDB_BUCKET,
         INFLUXDB_WRITE_TOKEN=INFLUXDB_TOKEN,
         INFLUXDB_BASE_URL=str(influxdb.root_url),
+        OPC_RECORD_INTERVAL="1",
     )
     process = main_process([], envargs)
-    start_time = datetime.now()
-    while not opcserver.has_subscriptions():
-        elapsed = datetime.now() - start_time
-        assert (
-            elapsed.total_seconds() < 10
-        ), "Timeout waiting for OPC-UA server to have subscriptions"
-        time.sleep(1.0)
-        assert process.poll() is None
-    # InfluxDB time precision is set to second at write, so sleep to be sure
-    # to not overwrite the last point
-    time.sleep(1.0)
-    opcserver.change_node("recorded")
     lines: List[Dict[str, Any]] = []
     start_time = datetime.now()
     while not lines:
@@ -104,7 +93,10 @@ def test_smoketest(
             f"""import "influxdata/influxdb/schema"
             schema.measurements(bucket: "{INFLUXDB_BUCKET}")"""
         )
-        time.sleep(1.0)
+        time.sleep(0.2)
+        assert process.poll() is None
+    opcserver.change_node("recorded")
+    time.sleep(1.2)
     assert all(line["_value"] == "Recorded" for line in lines)
     lines = influxdb.query(
         f"""from(bucket: "{INFLUXDB_BUCKET}")

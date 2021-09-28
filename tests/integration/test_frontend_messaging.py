@@ -8,7 +8,7 @@ import requests
 import websocket
 from yarl import URL
 
-from .conftest import MainProcessFixture
+from .conftest import MainProcessFixture, OPCServer
 
 CENTRIFUGO_HOST = "centrifugo"
 
@@ -80,12 +80,12 @@ def centrifugo_client(
     client.client.close()
 
 
-@pytest.mark.usefixtures("opcserver")
 def test_smoketest(
     centrifugo_client: CentrifugoClient,
     centrifugo_server: CentrifugoServer,
     main_process: MainProcessFixture,
     mandatory_env_args: Dict[str, str],
+    opcserver: OPCServer,
 ) -> None:
     def ping_main_process() -> bool:
         url = "http://localhost:8008/centrifugo/subscribe"
@@ -105,7 +105,7 @@ def test_smoketest(
     )
     process = main_process([], envargs)
     start_time = datetime.now()
-    while not ping_main_process():
+    while not (ping_main_process() and opcserver.has_subscriptions()):
         elapsed = datetime.now() - start_time
         assert (
             elapsed.total_seconds() < 20
@@ -122,6 +122,8 @@ def test_smoketest(
             elapsed.total_seconds() < 10
         ), "Timeout waiting for heartbeat channel to have publication"
         time.sleep(1.0)
+    opcserver.change_node("monitored")
+    time.sleep(1.0)
 
     def publication_length(channel: str) -> int:
         history = centrifugo_server.history(channel)
