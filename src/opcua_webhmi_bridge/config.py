@@ -85,6 +85,9 @@ class OPCSettings(BaseSettings):
     record_nodes: List[str] = Field(
         ..., help="Array of node IDs to monitor and record (JSON format)"
     )
+    monitor_delay: PositiveInt = Field(
+        60, help="Delay in seconds between polling of recorded nodes"
+    )
     retry_delay: PositiveInt = Field(
         5, help="Delay in seconds to retry OPC-UA connection"
     )
