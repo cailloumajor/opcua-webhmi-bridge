@@ -53,7 +53,7 @@ def opcua_client(mocker: MockerFixture) -> OPCUAClient:
     config = mocker.Mock(
         monitor_nodes=["monitornode1", "monitornode2"],
         record_nodes=["recnode1", "recnode2"],
-        monitor_delay=42,
+        record_interval=42,
         retry_delay=1234,
     )
     centrifugo_proxy_server = mocker.Mock(last_opc_status=None)

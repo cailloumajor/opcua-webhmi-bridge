@@ -95,7 +95,7 @@ class OPCUAClient(AsyncTask):
                 message = OPCDataMessage(node.nodeid.Identifier, value)
                 self._influx_writer.put(message)
             elapsed = time.monotonic() - last_time
-            await asyncio.sleep(self._config.monitor_delay - elapsed)
+            await asyncio.sleep(self._config.record_interval - elapsed)
 
     async def _task(self) -> None:
         client = await self._create_opc_client()
