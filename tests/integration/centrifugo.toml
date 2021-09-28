@@ -5,6 +5,7 @@ health = true
 history_lifetime = 60
 history_size = 10
 proxy_subscribe_endpoint = "http://integration-tests:8008/centrifugo/subscribe"
+log_level = "debug"
 
 [[namespaces]]
 name = "proxied"
