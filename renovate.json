@@ -11,7 +11,7 @@
       "rangeStrategy": "pin"
     },
     {
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": ["dev-dependencies"],
       "automerge": true,
       "automergeType": "branch"
     },
