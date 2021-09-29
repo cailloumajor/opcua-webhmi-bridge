@@ -559,7 +559,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.0rc1"
+version = "1.0.1"
 description = "pytest-httpserver is a httpserver for pytest"
 category = "dev"
 optional = false
@@ -762,7 +762,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "c258d18268ca7c40546c5b2dc5ffd8753b9508d21b6bdc2895f6e9e1dec3ac71"
+content-hash = "e2dda8b23e2167f25220abd3832f62c30cfb9d90ae7dbb86eb578afe71b24646"
 
 [metadata.files]
 aiofiles = [
@@ -1165,8 +1165,8 @@ pytest-cov = [
     {file = "pytest_cov-2.12.1-py2.py3-none-any.whl", hash = "sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a"},
 ]
 pytest-httpserver = [
-    {file = "pytest_httpserver-1.0.0rc1-py3-none-any.whl", hash = "sha256:4399d72af1a9ac76f2db951a33142b7562e7c5ec3535289a20811daf25d25f5d"},
-    {file = "pytest_httpserver-1.0.0rc1.tar.gz", hash = "sha256:2520c3a314ab43d0f05f27d6920fa75142d19391e0eb8a9ca3eb8005940e91e4"},
+    {file = "pytest_httpserver-1.0.1-py3-none-any.whl", hash = "sha256:3b2663b539849a2e5bd7d7f380a99b19c4650e154581af699ad6431b5424cacc"},
+    {file = "pytest_httpserver-1.0.1.tar.gz", hash = "sha256:e359c5722ce2bd3bb68f4606f57d5c846e52bf7c748a70de4a3097bb91006089"},
 ]
 pytest-mock = [
     {file = "pytest-mock-3.6.0.tar.gz", hash = "sha256:f7c3d42d6287f4e45846c8231c31902b6fa2bea98735af413a43da4cf5b727f1"},
