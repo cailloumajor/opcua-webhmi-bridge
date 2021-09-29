@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import re
 from json.decoder import JSONDecodeError
 from typing import Dict, Union
 
@@ -11,7 +10,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, web
 from .config import CentrifugoSettings
 from .library import AsyncTask, MessageConsumer
 from .messages import (
-    PROXIED_CHANNEL_NAMESPACE,
+    PROXIED_CHANNEL_PREFIX,
     HeartBeatMessage,
     LinkStatus,
     MessageType,
@@ -124,22 +123,25 @@ class CentrifugoProxyServer(AsyncTask):
             raise web.HTTPInternalServerError(reason="JSON decode error")
         except AttributeError:
             raise web.HTTPBadRequest(reason="Bad request format")
+
         if channel is None:
             return _error(1000, "Missing channel field")
+        elif isinstance(channel, str):
+            channel = channel.removeprefix(PROXIED_CHANNEL_PREFIX)
         else:
-            try:
-                channel = re.sub(rf"^{PROXIED_CHANNEL_NAMESPACE}:", "", channel)
-            except TypeError:
-                raise web.HTTPBadRequest(reason="Channel must be a string")
+            raise web.HTTPBadRequest(reason="Channel must be a string")
+
         if channel == MessageType.OPC_DATA:
             for message in self._last_opc_data.values():
                 self._messaging_writer.put(message)
         elif channel == MessageType.OPC_STATUS:
             self._messaging_writer.put(self.last_opc_status)
+
         try:
             MessageType(channel)
         except ValueError:
             return _error(1001, "Unknown channel")
+
         return web.json_response({"result": {}})
 
     async def task(self) -> None:

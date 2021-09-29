@@ -5,7 +5,7 @@ import json
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Any, Dict, List, Union
 
-PROXIED_CHANNEL_NAMESPACE = "proxied"
+PROXIED_CHANNEL_PREFIX = "proxied:"
 
 JsonScalar = Union[str, int, float, bool, None]
 DataChangePayload = Union[
@@ -27,7 +27,7 @@ class MessageType(str, enum.Enum):
         """Returns the Centrifugo channel name for this member."""
         channel: str = self.value
         if self.name.startswith("OPC_"):
-            channel = PROXIED_CHANNEL_NAMESPACE + ":" + channel
+            channel = PROXIED_CHANNEL_PREFIX + channel
         return channel
 
 
