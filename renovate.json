@@ -7,6 +7,15 @@
   "ignorePaths": [],
   "packageRules": [
     {
+      "matchManagers": ["poetry"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
       "matchPackageNames": ["black"],
       "ignoreUnstable": false
     },
