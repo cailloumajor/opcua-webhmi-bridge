@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from json.decoder import JSONDecodeError
-from typing import Dict, Union
+from typing import Union
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
@@ -95,7 +95,7 @@ class CentrifugoProxyServer(AsyncTask):
         """
         self._config = config
         self._messaging_writer = messaging_writer
-        self._last_opc_data: Dict[str, OPCDataMessage] = {}
+        self._last_opc_data: dict[str, OPCDataMessage] = {}
         self.last_opc_status = OPCStatusMessage(LinkStatus.Down)
 
     def clear_last_opc_data(self) -> None:

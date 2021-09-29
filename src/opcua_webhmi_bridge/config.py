@@ -4,7 +4,7 @@ import dataclasses
 import re
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from pydantic import (
     AnyHttpUrl,
@@ -79,10 +79,10 @@ class OPCSettings(BaseSettings):
     server_url: OpcUrl = Field(
         ..., help="URL of the OPC-UA server, including username / password if needed"
     )
-    monitor_nodes: List[str] = Field(
+    monitor_nodes: list[str] = Field(
         ..., help="Array of node IDs to monitor without recording (JSON format)"
     )
-    record_nodes: List[str] = Field(
+    record_nodes: list[str] = Field(
         ..., help="Array of node IDs to monitor and record (JSON format)"
     )
     record_interval: PositiveInt = Field(
@@ -99,11 +99,11 @@ class OPCSettings(BaseSettings):
     @root_validator
     def check_nodes_overlapping(
         cls: "OPCSettings",  # noqa: U100, N805
-        values: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
         """Validates that monitored node ids and recorded node ids do not ovelap."""
-        monitor_nodes: List[str] = values.get("monitor_nodes", [])
-        record_nodes: List[str] = values.get("record_nodes", [])
+        monitor_nodes: list[str] = values.get("monitor_nodes", [])
+        record_nodes: list[str] = values.get("record_nodes", [])
         overlapping = set(monitor_nodes) & set(record_nodes)
         if len(overlapping):
             raise ValueError(
@@ -115,8 +115,8 @@ class OPCSettings(BaseSettings):
     @root_validator
     def check_cert_and_key_set(
         cls: "OPCSettings",  # noqa: U100, N805
-        values: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
         """Validates that both or none of certificate and private key files parameters are set."""
         cert_file: Optional[str] = values.get("cert_file")
         private_key_file: Optional[str] = values.get("private_key_file")
@@ -128,7 +128,7 @@ class OPCSettings(BaseSettings):
         env_prefix = "opc_"
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any]) -> None:
+        def schema_extra(schema: dict[str, Any]) -> None:
             """Processes the generated schema."""
             for prop in ("cert_file", "private_key_file"):
                 schema["properties"][prop]["default"] = "unset"
@@ -176,14 +176,14 @@ class Settings:
             raise ConfigError(config_field, error_msg)
 
     @classmethod
-    def help(cls) -> List[Tuple[str, str]]:
+    def help(cls) -> list[tuple[str, str]]:
         """Generate environment variables configuration options help text.
 
         Returns:
             A list of 2-tuples. Each tuple consists of the environment variable
             and its descriptive text.
         """
-        env_vars_tuples: List[Tuple[str, str]] = []
+        env_vars_tuples: list[tuple[str, str]] = []
         for field in dataclasses.fields(cls):
             for props in field.type.schema()["properties"].values():
                 env_var = list(props["env_names"])[0].upper()

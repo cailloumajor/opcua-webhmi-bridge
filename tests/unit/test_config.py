@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, NamedTuple
+from typing import Callable, Iterable, NamedTuple
 
 import pytest
 from pytest import MonkeyPatch
@@ -21,7 +21,7 @@ def arg_name(arg: EnvArg) -> str:
 
 
 @pytest.fixture
-def mandatory_env_args(mandatory_env_args: Dict[str, str]) -> List[EnvArg]:
+def mandatory_env_args(mandatory_env_args: dict[str, str]) -> list[EnvArg]:
     return [EnvArg(key, value) for key, value in mandatory_env_args.items()]
 
 
@@ -35,7 +35,7 @@ def set_vars(monkeypatch: MonkeyPatch) -> SetVarsFixture:
 
 
 def test_all_mandatory_args(
-    mandatory_env_args: List[EnvArg],
+    mandatory_env_args: list[EnvArg],
     set_vars: SetVarsFixture,
 ) -> None:
     set_vars(mandatory_env_args)
@@ -43,7 +43,7 @@ def test_all_mandatory_args(
 
 
 def test_missing_mandatory_arg(
-    mandatory_env_args: List[EnvArg],
+    mandatory_env_args: list[EnvArg],
     mandatory_env_args_keys: str,
     monkeypatch: MonkeyPatch,
     set_vars: SetVarsFixture,
@@ -77,7 +77,7 @@ def test_missing_mandatory_arg(
     ids=arg_name,
 )
 def test_bad_arg_type(
-    mandatory_env_args: List[EnvArg],
+    mandatory_env_args: list[EnvArg],
     monkeypatch: MonkeyPatch,
     set_vars: SetVarsFixture,
     bad_arg: EnvArg,
@@ -102,9 +102,9 @@ def test_bad_arg_type(
     ],
 )
 def test_opc_cert_and_key(
-    apply_args: List[str],
+    apply_args: list[str],
     expect_failure: bool,
-    mandatory_env_args: List[EnvArg],
+    mandatory_env_args: list[EnvArg],
     monkeypatch: MonkeyPatch,
     set_vars: SetVarsFixture,
     tmp_path: Path,
@@ -131,7 +131,7 @@ def test_opc_cert_and_key(
     ],
 )
 def test_overlapping_nodes(
-    mandatory_env_args: List[EnvArg],
+    mandatory_env_args: list[EnvArg],
     monkeypatch: MonkeyPatch,
     overlapping_arg: EnvArg,
     set_vars: SetVarsFixture,
@@ -142,7 +142,7 @@ def test_overlapping_nodes(
         Settings()
 
 
-def test_help(mandatory_env_args: List[EnvArg], set_vars: SetVarsFixture) -> None:
+def test_help(mandatory_env_args: list[EnvArg], set_vars: SetVarsFixture) -> None:
     set_vars(mandatory_env_args)
     mandatory_names = [n for n, _ in mandatory_env_args]
     for env_var, help_text in Settings.help():

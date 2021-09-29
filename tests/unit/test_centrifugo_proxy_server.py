@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from typing import Any, Awaitable, Callable, Dict, cast
+from typing import Any, Awaitable, Callable, cast
 from unittest.mock import Mock as MockType
 
 import aiohttp
@@ -89,8 +89,8 @@ class TestCentrifugoSubscribe:
         self,
         aiohttp_client: ClientFixture,
         aiohttp_raw_server: RawServerFixture,
-        expected_error: Dict[str, Any],
-        json: Dict[str, Any],
+        expected_error: dict[str, Any],
+        json: dict[str, Any],
         proxy_server: CentrifugoProxyServer,
     ) -> None:
         server = await aiohttp_raw_server(proxy_server.centrifugo_subscribe)

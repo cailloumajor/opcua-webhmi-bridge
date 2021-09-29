@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import Any, Callable, ContextManager, Iterator, List, Union, cast
+from typing import Any, Callable, Iterator, Union, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -18,7 +18,7 @@ from opcua_webhmi_bridge.opcua import (
     OPCUAClient,
 )
 
-LogRecordsType = Callable[[], List[logging.LogRecord]]
+LogRecordsType = Callable[[], list[logging.LogRecord]]
 
 
 class ExceptionForTestingError(Exception):
@@ -37,7 +37,7 @@ class FakeUaStatusCodeError(Exception):
 def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
     caplog.set_level(logging.INFO)
 
-    def _inner() -> List[logging.LogRecord]:
+    def _inner() -> list[logging.LogRecord]:
         return list(
             filter(
                 lambda r: r.name == OPCUAClient.logger.name,
@@ -135,12 +135,12 @@ def test_subscribe(
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     mocked_client.create_subscription = mocker.AsyncMock()
     subscription = mocked_client.create_subscription.return_value
-    sub_results: List[Union[int, FakeUaStatusCodeError]] = [12, 34]
+    sub_results: list[Union[int, FakeUaStatusCodeError]] = [12, 34]
     if not subscription_success:
         sub_results[-1] = FakeUaStatusCodeError()
     subscription.subscribe_data_change = mocker.AsyncMock(side_effect=sub_results)
 
-    cm: ContextManager[Any]
+    cm: contextlib.AbstractContextManager[Any]
     if subscription_success:
         cm = contextlib.suppress(InfiniteLoopBreakerError)
     else:
@@ -194,7 +194,7 @@ def test_poll_status(
 
 def read_values_side_effect(
     *args: Any, **kwargs: Any  # noqa: U100
-) -> Iterator[List[str]]:
+) -> Iterator[list[str]]:
     pass_count = 0
     while True:
         if pass_count == 0:

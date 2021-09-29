@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 import pytest
 from _pytest.config import Config
@@ -39,7 +39,7 @@ def pytest_configure(config: Config) -> None:
 
 
 def pytest_collection_modifyitems(
-    session: Session, config: Config, items: List[Item]
+    session: Session, config: Config, items: list[Item]
 ) -> None:
     del session
 
@@ -52,7 +52,7 @@ def pytest_collection_modifyitems(
 
 
 @pytest.fixture
-def mandatory_env_args() -> Dict[str, str]:
+def mandatory_env_args() -> dict[str, str]:
     return MANDATORY_ENV_ARGS
 
 

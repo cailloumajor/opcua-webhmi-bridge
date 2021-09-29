@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime
-from typing import Any, Dict, Generator
+from typing import Any, Generator
 
 import pytest
 import requests
@@ -57,7 +57,7 @@ class CentrifugoClient:
         self.client.connect(str(url))
         self._send_command("connect", {})
 
-    def _send_command(self, method: str, params: Dict[str, Any]) -> None:
+    def _send_command(self, method: str, params: dict[str, Any]) -> None:
         self._command_id += 1
         command_data = {"id": self._command_id, "method": method, "params": params}
         self.client.send(json.dumps(command_data))
@@ -84,7 +84,7 @@ def test_smoketest(
     centrifugo_client: CentrifugoClient,
     centrifugo_server: CentrifugoServer,
     main_process: MainProcessFixture,
-    mandatory_env_args: Dict[str, str],
+    mandatory_env_args: dict[str, str],
     opcserver: OPCServer,
 ) -> None:
     def ping_main_process() -> bool:

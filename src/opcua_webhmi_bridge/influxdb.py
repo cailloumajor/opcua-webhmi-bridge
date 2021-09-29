@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from itertools import chain, starmap
 from operator import itemgetter
-from typing import Any, Dict, Iterator, List, NamedTuple, Tuple, Union
+from typing import Any, Iterator, NamedTuple, Union
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from yarl import URL
@@ -17,7 +17,7 @@ from .messages import OPCDataMessage
 # A JSON scalar can be null, but data here comes from OPC-UA,
 # where a null value is not acceptable.
 JsonScalar = Union[str, int, float, bool]
-Flattened = Dict[str, JsonScalar]
+Flattened = dict[str, JsonScalar]
 
 _logger = logging.getLogger(__name__)
 
@@ -52,11 +52,11 @@ class InfluxPoint(NamedTuple):
         fields: A dict of flattened data.
     """
 
-    tags: Dict[str, str]
+    tags: dict[str, str]
     fields: Flattened
 
 
-def flatten(data: Dict[str, Any]) -> Flattened:
+def flatten(data: dict[str, Any]) -> Flattened:
     """Flattens a dictionary of data coming from JSON decoding.
 
     Args:
@@ -66,7 +66,7 @@ def flatten(data: Dict[str, Any]) -> Flattened:
         A dictionary of flattened data.
     """
 
-    def _unpack(parent_key: str, parent_value: Any) -> Iterator[Tuple[str, Any]]:
+    def _unpack(parent_key: str, parent_value: Any) -> Iterator[tuple[str, Any]]:
         if isinstance(parent_value, dict):
             for key, value in parent_value.items():
                 yield f"{parent_key}.{key}", value
@@ -107,8 +107,8 @@ def to_influx(message: OPCDataMessage) -> str:
             raise ValueError(f"Invalid InfluxDB field value: {scalar}")
 
     measurement = message.node_id.replace('"', "")
-    points: List[InfluxPoint] = []
-    lines: List[str] = []
+    points: list[InfluxPoint] = []
+    lines: list[str] = []
     if isinstance(message.payload, list):
         index_tag = measurement.split(".")[-1] + "_index"
         for index, elem in enumerate(message.payload):
