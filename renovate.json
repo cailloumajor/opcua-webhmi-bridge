@@ -5,11 +5,8 @@
     "config:base"
   ],
   "ignorePaths": [],
+  "rangeStrategy": "pin",
   "packageRules": [
-    {
-      "matchManagers": ["poetry"],
-      "rangeStrategy": "pin"
-    },
     {
       "matchDepTypes": ["dev-dependencies"],
       "automerge": true,
@@ -18,10 +15,6 @@
     {
       "matchPackageNames": ["black"],
       "ignoreUnstable": false
-    },
-    {
-      "matchFiles": ["tests/integration/requirements.txt"],
-      "rangeStrategy": "replace"
     }
   ],
   "regexManagers": [
