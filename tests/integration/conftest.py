@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 from datetime import datetime
-from typing import Dict, Generator, List, Optional, Protocol
+from typing import Generator, Optional, Protocol
 
 import pytest
 import requests
@@ -17,8 +17,8 @@ OPC_SERVER_HTTP_PORT = 8080
 
 @pytest.fixture
 def mandatory_env_args(
-    mandatory_env_args: Dict[str, str], request: FixtureRequest
-) -> Dict[str, str]:
+    mandatory_env_args: dict[str, str], request: FixtureRequest
+) -> dict[str, str]:
     dirpath = request.fspath.dirpath()
     return dict(
         mandatory_env_args,
@@ -33,18 +33,18 @@ def mandatory_env_args(
 class MainProcessFixture(Protocol):
     def __call__(
         self,
-        args: List[str],  # noqa: U100
-        env: Optional[Dict[str, str]] = None,  # noqa: U100
+        args: list[str],  # noqa: U100
+        env: Optional[dict[str, str]] = None,  # noqa: U100
     ) -> subprocess.Popen[str]:
         ...
 
 
 @pytest.fixture
 def main_process() -> Generator[MainProcessFixture, None, None]:
-    sentinel: List[subprocess.Popen[str]] = []
+    sentinel: list[subprocess.Popen[str]] = []
 
     def _inner(
-        args: List[str], env: Optional[Dict[str, str]] = None
+        args: list[str], env: Optional[dict[str, str]] = None
     ) -> subprocess.Popen[str]:
         args = ["opcua-agent"] + args
         if env is not None:

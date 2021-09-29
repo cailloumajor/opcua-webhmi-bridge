@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import logging
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 import pytest
 from pytest import LogCaptureFixture
@@ -15,12 +15,12 @@ from opcua_webhmi_bridge.influxdb import (
     to_influx,
 )
 
-LogRecordsType = Callable[[], List[logging.LogRecord]]
+LogRecordsType = Callable[[], list[logging.LogRecord]]
 
 
 @pytest.fixture
 def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
-    def _inner() -> List[logging.LogRecord]:
+    def _inner() -> list[logging.LogRecord]:
         return list(
             filter(
                 lambda r: r.name == InfluxDBWriter.logger.name,
@@ -179,7 +179,7 @@ class TestTask:
         influxdb_writer: InfluxDBWriter,
         log_records: LogRecordsType,
         mocker: MockerFixture,
-        resp_json: Dict[str, str],
+        resp_json: dict[str, str],
     ) -> None:
         httpserver.expect_oneshot_request(
             "/influx/api/v2/write",

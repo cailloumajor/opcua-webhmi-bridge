@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Union
 
 import pytest
 from pytest import LogCaptureFixture
@@ -11,12 +11,12 @@ from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.frontend_messaging import FrontendMessagingWriter
 
-LogRecordsType = Callable[[], List[logging.LogRecord]]
+LogRecordsType = Callable[[], list[logging.LogRecord]]
 
 
 @pytest.fixture
 def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
-    def _inner() -> List[logging.LogRecord]:
+    def _inner() -> list[logging.LogRecord]:
         return list(
             filter(
                 lambda r: r.name == FrontendMessagingWriter.logger.name,
@@ -63,7 +63,7 @@ class RequestSuccesTestCase:
 
 @dataclass
 class RequestFailureTestCase:
-    response_json: Dict[str, Any]
+    response_json: dict[str, Any]
     response_status: int
     logged_error_contains: str
 

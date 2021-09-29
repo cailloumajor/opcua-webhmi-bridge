@@ -3,7 +3,7 @@ import logging
 import re
 from pathlib import Path
 from signal import SIGINT
-from typing import Callable, List
+from typing import Callable
 from unittest.mock import AsyncMock as AsyncMockType
 
 import pytest
@@ -32,14 +32,14 @@ async def raising_task() -> None:
         raise ExceptionForTestingError("Exception for testing")
 
 
-LogRecordsType = Callable[[], List[logging.LogRecord]]
+LogRecordsType = Callable[[], list[logging.LogRecord]]
 
 
 @pytest.fixture
 def log_records(caplog: LogCaptureFixture) -> LogRecordsType:
     caplog.set_level(logging.INFO)
 
-    def _inner() -> List[logging.LogRecord]:
+    def _inner() -> list[logging.LogRecord]:
         return list(filter(lambda r: r.name == _logger.name, caplog.records))
 
     return _inner

@@ -5,7 +5,7 @@ import logging
 import signal
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import click
 import typer
@@ -71,7 +71,7 @@ async def shutdown(sig: Optional[signal.Signals] = None) -> None:
     loop.stop()
 
 
-def handle_exception(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
+def handle_exception(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
     """Exception handler for event loop."""
     # context["message"] will always be there;
     # but context["exception"] and context["future"] may not

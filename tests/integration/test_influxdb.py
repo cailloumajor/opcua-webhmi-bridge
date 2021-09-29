@@ -1,7 +1,7 @@
 import csv
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 import requests
@@ -38,7 +38,7 @@ class InfluxDB:
         )
         resp.raise_for_status()
 
-    def query(self, query: str) -> List[Dict[str, Any]]:
+    def query(self, query: str) -> list[dict[str, Any]]:
         resp = self.session.post(
             self.url("api/v2/query"),
             headers={"Content-Type": "application/vnd.flux"},
@@ -72,7 +72,7 @@ def influxdb() -> InfluxDB:
 def test_smoketest(
     influxdb: InfluxDB,
     main_process: MainProcessFixture,
-    mandatory_env_args: Dict[str, str],
+    mandatory_env_args: dict[str, str],
     opcserver: OPCServer,
 ) -> None:
     envargs = dict(
@@ -84,7 +84,7 @@ def test_smoketest(
         OPC_RECORD_INTERVAL="1",
     )
     process = main_process([], envargs)
-    lines: List[Dict[str, Any]] = []
+    lines: list[dict[str, Any]] = []
     start_time = datetime.now()
     while not lines:
         elapsed = datetime.now() - start_time

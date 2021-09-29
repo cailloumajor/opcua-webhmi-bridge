@@ -3,14 +3,14 @@
 import enum
 import json
 from dataclasses import InitVar, asdict, dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
-PROXIED_CHANNEL_NAMESPACE = "proxied"
+PROXIED_CHANNEL_PREFIX = "proxied:"
 
 JsonScalar = Union[str, int, float, bool, None]
 DataChangePayload = Union[
-    Dict[str, Any],
-    List[Union[Dict[str, Any], JsonScalar]],
+    dict[str, Any],
+    list[Union[dict[str, Any], JsonScalar]],
     JsonScalar,
 ]
 
@@ -27,7 +27,7 @@ class MessageType(str, enum.Enum):
         """Returns the Centrifugo channel name for this member."""
         channel: str = self.value
         if self.name.startswith("OPC_"):
-            channel = PROXIED_CHANNEL_NAMESPACE + ":" + channel
+            channel = PROXIED_CHANNEL_PREFIX + channel
         return channel
 
 
@@ -52,7 +52,7 @@ class BaseMessage:
     message_type: MessageType = field(init=False)
 
     @property
-    def frontend_data(self) -> Dict[str, Any]:
+    def frontend_data(self) -> dict[str, Any]:
         """Returns a dictionary representation excluding the message type field."""
         return {k: v for k, v in asdict(self).items() if k != "message_type"}
 
