@@ -2,7 +2,7 @@ FROM debian:bullseye AS gosu
 
 # grab gosu for easy step-down from root
 # https://github.com/tianon/gosu/releases
-# renovate: datasource=github-releases depName=tianon/gosu
+# renovate: datasource=github-releases depName=tianon/gosu versioning=loose
 ENV GOSU_VERSION=1.12
 # hadolint ignore=DL3008,DL4006,SC2015,SC2086,SC2155
 RUN set -eux ; \
