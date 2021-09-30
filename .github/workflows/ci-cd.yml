@@ -111,7 +111,7 @@ jobs:
           tar -xf /tmp/virtual-environment.tar.zst
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - name: Run unit tests
-        run: pytest -vv --cov-report=xml tests/unit
+        run: pytest -vv --cov-report=xml --timeout=120 tests/unit
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
