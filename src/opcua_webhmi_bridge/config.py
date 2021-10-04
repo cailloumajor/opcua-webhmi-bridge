@@ -97,22 +97,6 @@ class OPCSettings(BaseSettings):
     )
 
     @root_validator
-    def check_nodes_overlapping(
-        cls: "OPCSettings",  # noqa: U100, N805
-        values: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Validates that monitored node ids and recorded node ids do not ovelap."""
-        monitor_nodes: list[str] = values.get("monitor_nodes", [])
-        record_nodes: list[str] = values.get("record_nodes", [])
-        overlapping = set(monitor_nodes) & set(record_nodes)
-        if len(overlapping):
-            raise ValueError(
-                "Same node ids found in OPC_MONITOR_NODES "
-                "and OPC_RECORD_NODES environment variables"
-            )
-        return values
-
-    @root_validator
     def check_cert_and_key_set(
         cls: "OPCSettings",  # noqa: U100, N805
         values: dict[str, Any],
