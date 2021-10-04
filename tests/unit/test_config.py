@@ -123,25 +123,6 @@ def test_opc_cert_and_key(
         Settings()
 
 
-@pytest.mark.parametrize(
-    "overlapping_arg",
-    [
-        EnvArg("OPC_MONITOR_NODES", '["node1", "node2", "node3"]'),
-        EnvArg("OPC_RECORD_NODES", '["node2", "node3", "node4"]'),
-    ],
-)
-def test_overlapping_nodes(
-    mandatory_env_args: list[EnvArg],
-    monkeypatch: MonkeyPatch,
-    overlapping_arg: EnvArg,
-    set_vars: SetVarsFixture,
-) -> None:
-    set_vars(mandatory_env_args)
-    monkeypatch.setenv(overlapping_arg.name, overlapping_arg.value)
-    with pytest.raises(ConfigError, match="Same node ids found"):
-        Settings()
-
-
 def test_help(mandatory_env_args: list[EnvArg], set_vars: SetVarsFixture) -> None:
     set_vars(mandatory_env_args)
     mandatory_names = [n for n, _ in mandatory_env_args]
