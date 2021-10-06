@@ -11,19 +11,21 @@ on:
     branches:
       - master
 
-env:
-  PYTHON_VERSION: "3.9"
-
 jobs:
   virtual-env:
     name: Build virtual environment
     runs-on: ubuntu-latest
+    outputs:
+      python_version: ${{ steps.get-python-version.outputs.python_version }}
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Get Python version from Dockerfile
+        id: get-python-version
+        run: echo "::set-output name=python_version::$(grep 'FROM python.*AS final' Dockerfile | grep -oP 'python:\K[\d.]+')"
+      - name: Set up Python ${{ steps.get-python-version.outputs.python_version }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ steps.get-python-version.outputs.python_version }}
       - name: Get Poetry version to install
         id: poetry-version
         run: |
@@ -61,10 +63,10 @@ jobs:
       - virtual-env
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Set up Python ${{ needs.virtual-env.outputs.python_version }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ needs.virtual-env.outputs.python_version }}
       - name: Download virtual environment artifact
         uses: actions/download-artifact@v2
         with:
@@ -97,10 +99,10 @@ jobs:
       - virtual-env
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Set up Python ${{ needs.virtual-env.outputs.python_version }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ needs.virtual-env.outputs.python_version }}
       - name: Download virtual environment artifact
         uses: actions/download-artifact@v2
         with:
