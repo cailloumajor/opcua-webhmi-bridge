@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - "renovate/**"
+      - dedup-renovate-pr-ci-runs  # TODO: Remove this
     tags:
       - "**"
   pull_request:
