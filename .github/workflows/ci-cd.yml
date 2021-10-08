@@ -5,11 +5,12 @@ on:
     branches:
       - master
       - "renovate/**"
-    tags:
-      - "**"
   pull_request:
     branches:
       - master
+  release:
+    types:
+      - published
 
 jobs:
   pre_job:
@@ -21,7 +22,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v3
         with:
           concurrent_skipping: same_content
-          do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
+          do_not_skip: '["pull_request", "release", "workflow_dispatch", "schedule"]'
           skip_after_successful_duplicate: true
   virtual-env:
     name: Build virtual environment
@@ -162,7 +163,7 @@ jobs:
       - code-quality
       - unit-tests
       - integration-tests
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'release'
     outputs:
       match: ${{ steps.check-tag.outputs.match }}
       tag: ${{ steps.check-tag.outputs.tag }}
