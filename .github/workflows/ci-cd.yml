@@ -12,12 +12,17 @@ on:
     branches:
       - master
 
-concurrency: ${{ github.head_ref }}
-
 jobs:
+  check-source-branch:
+    name: Check that the CI run is not redundant
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.head_ref, 'renovate')"
   virtual-env:
     name: Build virtual environment
     runs-on: ubuntu-latest
+    needs:
+      - check-source-branch
+    if: needs.check-source-branch.result != 'skipped'
     outputs:
       python_version: ${{ steps.get-python-version.outputs.python_version }}
     steps:
@@ -125,6 +130,9 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
+    needs:
+      - check-source-branch
+    if: needs.check-source-branch.result != 'skipped'
     steps:
       - uses: actions/checkout@v2
       - name: Run integration tests
