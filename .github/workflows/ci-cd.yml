@@ -11,6 +11,8 @@ on:
     branches:
       - master
 
+concurrency: ${{ github.head_ref }}
+
 jobs:
   virtual-env:
     name: Build virtual environment
