@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime
+from enum import IntEnum
 from typing import Any, Generator
 
 import pytest
@@ -11,6 +12,11 @@ from yarl import URL
 from .conftest import MainProcessFixture, OPCServer
 
 CENTRIFUGO_HOST = "centrifugo"
+
+
+class Method(IntEnum):
+    CONNECT = 0
+    SUBSCRIBE = 1
 
 
 class CentrifugoServer:
@@ -29,12 +35,19 @@ class CentrifugoServer:
         else:
             return True
 
-    def history(self, channel: str) -> Any:
+    def _api_send(self, data: dict[str, Any]) -> Any:
         headers = {"Authorization": "apikey apikey"}
-        data = {"method": "history", "params": {"channel": channel}}
         resp = requests.post(self.url("api"), headers=headers, json=data)
         resp.raise_for_status()
         return resp.json()
+
+    def history_remove(self, channel: str) -> None:
+        data = {"method": "history_remove", "params": {"channel": channel}}
+        self._api_send(data)
+
+    def history(self, channel: str) -> Any:
+        data = {"method": "history", "params": {"channel": channel, "limit": 10}}
+        return self._api_send(data)
 
 
 @pytest.fixture
@@ -47,6 +60,9 @@ def centrifugo_server() -> CentrifugoServer:
             elapsed.total_seconds() < 30
         ), "Timeout waiting for Centrifugo server to be ready"
         time.sleep(1.0)
+    server.history_remove("heartbeat")
+    server.history_remove("proxied:opc_data")
+    server.history_remove("proxied:opc_status")
     return server
 
 
@@ -55,18 +71,22 @@ class CentrifugoClient:
         self._command_id = 0
         self.client = websocket.WebSocket()
         self.client.connect(str(url))
-        self._send_command("connect", {})
+        self._send_command(Method.CONNECT, {})
 
-    def _send_command(self, method: str, params: dict[str, Any]) -> None:
+    def _send_command(self, method: Method, params: dict[str, Any]) -> None:
         self._command_id += 1
-        command_data = {"id": self._command_id, "method": method, "params": params}
+        command_data = {
+            "id": self._command_id,
+            "method": method.value,
+            "params": params,
+        }
         self.client.send(json.dumps(command_data))
         reply_resp = json.loads(self.client.recv())
         assert reply_resp["id"] == self._command_id, "Bad Centrifugo reply id"
         assert reply_resp.get("error") is None, "Centrifugo command failed"
 
     def subscribe(self, channel: str) -> None:
-        self._send_command("subscribe", {"channel": channel})
+        self._send_command(Method.SUBSCRIBE, {"channel": channel})
 
 
 @pytest.fixture

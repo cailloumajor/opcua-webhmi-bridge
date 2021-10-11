@@ -1,14 +1,14 @@
-v3_use_offset = true
+allowed_origins = [ "*" ]
 api_key = "apikey"
 client_insecure = true
 health = true
-history_lifetime = 60
+history_ttl = "60s"
 history_size = 10
 proxy_subscribe_endpoint = "http://integration-tests:8008/centrifugo/subscribe"
 log_level = "debug"
 
 [[namespaces]]
 name = "proxied"
-history_lifetime = 60
+history_ttl = "60s"
 history_size = 10
 proxy_subscribe = true
