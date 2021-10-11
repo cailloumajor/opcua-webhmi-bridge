@@ -9,9 +9,13 @@
   "packageRules": [
     {
       "matchDepTypes": ["dev-dependencies"],
-      "matchFiles": ["tests/integration/requirements.txt"],
       "automerge": true,
       "automergeType": "branch"
+    },
+    {
+      "matchFiles": ["tests/integration/requirements.txt"],
+      "automerge": true,
+      "automergeType": "branch"     
     },
     {
       "matchPackageNames": ["black"],
