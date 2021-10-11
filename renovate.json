@@ -15,7 +15,7 @@
     {
       "matchFiles": ["tests/integration/requirements.txt"],
       "automerge": true,
-      "automergeType": "branch"     
+      "automergeType": "branch"
     },
     {
       "matchPackageNames": ["black"],
