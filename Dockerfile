@@ -49,7 +49,6 @@ RUN . .venv/bin/activate \
 FROM python:3.9.7-slim-bullseye AS final
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
-LABEL org.opencontainers.image.source https://github.com/cailloumajor/opcua-webhmi-bridge
 
 ENV PYTHONUNBUFFERED=1
 
