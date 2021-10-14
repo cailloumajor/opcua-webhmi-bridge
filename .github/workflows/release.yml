@@ -1,31 +1,17 @@
-name: Automated release
+name: Automated delivery
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 env:
   PACKAGE_NAME: opcua-webhmi-bridge
 
 jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    outputs:
-      release-created: ${{ steps.release.outputs.release_created }}
-      tag-name: ${{ steps.release.outputs.tag-name }}
-    steps:
-      - id: release
-        uses: GoogleCloudPlatform/release-please-action@v2
-        with:
-          release-type: python
-          package-name: ${{ env.PACKAGE_NAME }}
   docker-release:
     name: Build and release Docker image
     runs-on: ubuntu-latest
-    needs:
-      - release-please
-    if: needs.release-please.outputs.release-created
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -50,7 +36,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.PACKAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag-name }}
+            type=semver,pattern={{version}}
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
