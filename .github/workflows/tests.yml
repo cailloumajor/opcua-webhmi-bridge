@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "renovate/**"
+      - "release-*"
   pull_request:
     branches:
       - main
