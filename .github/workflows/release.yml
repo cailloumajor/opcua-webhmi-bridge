@@ -34,7 +34,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ghcr.io/${{ env.PACKAGE_NAME }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.PACKAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
       - name: Build and push
