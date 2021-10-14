@@ -3,11 +3,11 @@ name: Continuous integration and deployment
 on:
   push:
     branches:
-      - master
+      - main
       - "renovate/**"
   pull_request:
     branches:
-      - master
+      - main
   release:
     types:
       - published
