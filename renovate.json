@@ -6,6 +6,7 @@
   ],
   "ignorePaths": [],
   "rangeStrategy": "pin",
+  "semanticCommits": "enabled",
   "packageRules": [
     {
       "matchDepTypes": ["dev-dependencies"],
