@@ -146,7 +146,7 @@ jobs:
         if: always()
         run: docker-compose -f tests/integration/docker-compose.yml logs
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.0.20
         with:
           image-ref: opcua-webhmi-bridge:integration-tests
           format: template
