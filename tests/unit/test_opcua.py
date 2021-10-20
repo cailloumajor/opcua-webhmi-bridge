@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import Any, Callable, Iterator, Union, cast
+from typing import Any, Callable, Iterator, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -135,7 +135,7 @@ def test_subscribe(
     mocker.patch("opcua_webhmi_bridge.opcua.UaStatusCodeError", FakeUaStatusCodeError)
     mocked_client.create_subscription = mocker.AsyncMock()
     subscription = mocked_client.create_subscription.return_value
-    sub_results: list[Union[int, FakeUaStatusCodeError]] = [12, 34]
+    sub_results: list[int | FakeUaStatusCodeError] = [12, 34]
     if not subscription_success:
         sub_results[-1] = FakeUaStatusCodeError()
     subscription.subscribe_data_change = mocker.AsyncMock(side_effect=sub_results)

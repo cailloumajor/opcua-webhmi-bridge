@@ -4,7 +4,7 @@ import dataclasses
 import re
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from pydantic import (
     AnyHttpUrl,
@@ -32,7 +32,7 @@ else:
 class ConfigError(ValueError):
     """Configuration error exception."""
 
-    def __init__(self, field: Union[str, None], error: str) -> None:
+    def __init__(self, field: str | None, error: str) -> None:
         """Initializes configuration error exception.
 
         Args:

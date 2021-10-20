@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import pytest
 from pytest import LogCaptureFixture
@@ -57,7 +57,7 @@ def test_initializes_superclass(messaging_writer: FrontendMessagingWriter) -> No
 @dataclass
 class RequestSuccesTestCase:
     expected_msg_type: str
-    expected_payload: Union[str, None]
+    expected_payload: str | None
     timeout: bool
 
 
