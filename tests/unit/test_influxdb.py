@@ -154,7 +154,7 @@ class TestTask:
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
         assert len(httpserver.log) > 0
-        httpserver.check_assertions()
+        httpserver.check_assertions()  # type: ignore
         assert not any(r.levelno == logging.ERROR for r in log_records())
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -192,7 +192,7 @@ class TestTask:
         influxdb_writer.put(mocker.Mock())
         await asyncio.sleep(0.1)
         assert len(httpserver.log) > 0
-        httpserver.check_assertions()
+        httpserver.check_assertions()  # type: ignore
         last_log_record = log_records()[-1]
         assert last_log_record.levelno == logging.ERROR
         assert expected_message in last_log_record.message

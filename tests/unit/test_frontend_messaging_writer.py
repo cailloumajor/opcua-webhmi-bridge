@@ -109,7 +109,7 @@ class TestTask:
             messaging_writer.put(fake_message)
         await asyncio.sleep(0.6 if testcase.timeout else 0.1)
         assert len(httpserver.log) > 0
-        httpserver.check_assertions()
+        httpserver.check_assertions()  # type: ignore
         assert not any(r.levelno == logging.ERROR for r in log_records())
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -147,7 +147,7 @@ class TestTask:
         messaging_writer.put(fake_message)
         await asyncio.sleep(0.1)
         assert len(httpserver.log) > 0
-        httpserver.check_assertions()
+        httpserver.check_assertions()  # type: ignore
         last_log_record = log_records()[-1]
         assert last_log_record.levelno == logging.ERROR
         assert testcase.logged_error_contains in last_log_record.message
