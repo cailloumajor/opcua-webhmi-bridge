@@ -1,7 +1,5 @@
 """Management of data writing to InfluxDB."""
 
-from __future__ import annotations
-
 import logging
 from itertools import chain, starmap
 from operator import itemgetter
