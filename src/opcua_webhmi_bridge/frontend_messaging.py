@@ -49,7 +49,7 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
             headers=headers, timeout=ClientTimeout(total=10)
         ) as session:
             while True:
-                message: Union[OPCMessage, HeartBeatMessage]
+                message: OPCMessage | HeartBeatMessage
                 try:
                     message = await asyncio.wait_for(
                         self._queue.get(), timeout=HEARTBEAT_TIMEOUT

@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Protocol
 
 import pytest
 from _pytest.config import Config
@@ -20,10 +18,9 @@ MANDATORY_ENV_ARGS = {
     "OPC_RECORD_NODES": '["node3", "node4"]',
 }
 
-if TYPE_CHECKING:
 
-    class FixtureRequest:
-        param: str
+class FixtureRequest(Protocol):
+    param: str
 
 
 def _sorting_key(item: Item) -> int:

@@ -128,7 +128,7 @@ class TestExceptionHandler:
     ) -> None:
         context = {
             "exception": ExceptionForTestingError("Exception handler test"),
-            "future": asyncio.Future(),
+            "future": asyncio.Future(loop=event_loop),
         }
         handle_exception(event_loop, context)
         event_loop.stop()
