@@ -16,4 +16,3 @@ do
 done
 
 poetry install
-pip install -r tests/integration/requirements.txt
