@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.0.2](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.1...v1.0.2) (2021-10-20)
+
+
+### Reverts
+
+* ignore deprecation warnings from stdlib code ([c89c363](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/c89c3630a4cd14b58069381b8c64c789f6d5b51b))
+
 ### [1.0.1](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.0...v1.0.1) (2021-10-14)
 
 
