@@ -18,7 +18,7 @@ aiohttp = "3.7.4.post0"
 yarl = "==1.7.0"
 
 [tool.poetry.dev-dependencies]
-black = {version = "21.9b0", allow-prereleases = true}
+black = {version = "==21.10b0", allow-prereleases = true}
 flake8 = "==4.0.1"
 isort = "==5.9.3"
 flake8-comprehensions = "==3.7.0"
