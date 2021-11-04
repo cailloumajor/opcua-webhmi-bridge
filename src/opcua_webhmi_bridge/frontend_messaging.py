@@ -5,6 +5,7 @@ import logging
 from json.decoder import JSONDecodeError
 from typing import Union
 
+import async_timeout
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 from .config import CentrifugoSettings
@@ -51,9 +52,8 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
             while True:
                 message: OPCMessage | HeartBeatMessage
                 try:
-                    message = await asyncio.wait_for(
-                        self._queue.get(), timeout=HEARTBEAT_TIMEOUT
-                    )
+                    async with async_timeout.timeout(HEARTBEAT_TIMEOUT):
+                        message = await self._queue.get()
                 except asyncio.TimeoutError:
                     message = HeartBeatMessage()
                 command = {
