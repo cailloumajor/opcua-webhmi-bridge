@@ -3,16 +3,12 @@
 import enum
 import json
 from dataclasses import InitVar, asdict, dataclass, field
-from typing import Any, Union
+from typing import Any
 
 PROXIED_CHANNEL_PREFIX = "proxied:"
 
-JsonScalar = Union[str, int, float, bool, None]
-DataChangePayload = Union[
-    dict[str, Any],
-    list[Union[dict[str, Any], JsonScalar]],
-    JsonScalar,
-]
+JsonScalar = str | int | float | bool | None
+DataChangePayload = dict[str, Any] | list[dict[str, Any] | JsonScalar] | JsonScalar
 
 
 class MessageType(str, enum.Enum):
