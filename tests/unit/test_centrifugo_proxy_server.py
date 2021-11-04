@@ -7,15 +7,15 @@ import aiohttp
 import pytest
 from aiohttp import web
 from aiohttp.client_exceptions import ClientConnectorError
-from aiohttp.test_utils import RawTestServer, TestClient, unused_port
-from aiohttp.web_urldispatcher import _WebHandler
+from aiohttp.pytest_plugin import AiohttpClient
+from aiohttp.test_utils import RawTestServer, unused_port
+from aiohttp.typedefs import Handler
 from pytest_mock import MockerFixture
 
 from opcua_webhmi_bridge.frontend_messaging import CentrifugoProxyServer
 from opcua_webhmi_bridge.messages import MessageType
 
-ClientFixture = Callable[[RawTestServer], Awaitable[TestClient]]
-RawServerFixture = Callable[[_WebHandler], Awaitable[RawTestServer]]
+RawServerFixture = Callable[[Handler], Awaitable[RawTestServer]]
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ class TestCentrifugoSubscribe:
     )
     async def test_http_error(
         self,
-        aiohttp_client: ClientFixture,
+        aiohttp_client: AiohttpClient,
         aiohttp_raw_server: RawServerFixture,
         exp_status: int,
         exp_reason: str,
@@ -87,7 +87,7 @@ class TestCentrifugoSubscribe:
     )
     async def test_centrifugo_error(
         self,
-        aiohttp_client: ClientFixture,
+        aiohttp_client: AiohttpClient,
         aiohttp_raw_server: RawServerFixture,
         expected_error: dict[str, Any],
         json: dict[str, Any],
@@ -102,7 +102,7 @@ class TestCentrifugoSubscribe:
 
     async def test_opc_data(
         self,
-        aiohttp_client: ClientFixture,
+        aiohttp_client: AiohttpClient,
         aiohttp_raw_server: RawServerFixture,
         mocker: MockerFixture,
         proxy_server: CentrifugoProxyServer,
@@ -120,7 +120,7 @@ class TestCentrifugoSubscribe:
 
     async def test_opc_status(
         self,
-        aiohttp_client: ClientFixture,
+        aiohttp_client: AiohttpClient,
         aiohttp_raw_server: RawServerFixture,
         mocker: MockerFixture,
         proxy_server: CentrifugoProxyServer,
@@ -136,7 +136,7 @@ class TestCentrifugoSubscribe:
     @pytest.mark.parametrize("message_type", MessageType)
     async def test_known_channel(
         self,
-        aiohttp_client: ClientFixture,
+        aiohttp_client: AiohttpClient,
         aiohttp_raw_server: RawServerFixture,
         message_type: MessageType,
         proxy_server: CentrifugoProxyServer,
