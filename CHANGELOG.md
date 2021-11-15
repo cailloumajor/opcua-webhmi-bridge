@@ -1,5 +1,16 @@
 # Changelog
 
+### [1.0.3](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.2...v1.0.3) (2021-11-15)
+
+
+### Bug Fixes
+
+* **deps:** update dependency aiohttp to v3.8.0 ([26724b6](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/26724b6cefb5fdb7818264b5bc2df0deebe463cd))
+* **deps:** update dependency aiohttp to v3.8.1 ([a0974e4](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/a0974e4a58d4b93412c363c2a06bd5b59dc0fa1d))
+* **deps:** update dependency async-timeout to v4.0.1 ([f581dad](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/f581dad34d157a34d7ce55252b078fc471c9503b))
+* **deps:** update dependency yarl to v1.7.2 ([5c67058](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/5c67058ccd7527049b47a5f909ca655c9fa8cc0f))
+* use async-timeout instead of asyncio.wait_for ([6886b8b](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/6886b8ba2780cc5320fb56a8ff6abdd88af27709))
+
 ### [1.0.2](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.1...v1.0.2) (2021-10-20)
 
 
