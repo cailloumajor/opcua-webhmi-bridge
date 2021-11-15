@@ -50,7 +50,7 @@ typing_extensions = ">=3.7.2"
 
 [[package]]
 name = "async-timeout"
-version = "4.0.0"
+version = "4.0.1"
 description = "Timeout context manager for asyncio programs"
 category = "main"
 optional = false
@@ -811,7 +811,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.10"
-content-hash = "0ffb534b4a6ad153cf82c8eb943716587f9515912c4d9b2ac43b94ad8aa04f82"
+content-hash = "a302088739e550f4a5dd958fb4f49a16219df81fafc24b3fc3d21ea64636be2f"
 
 [metadata.files]
 aiofiles = [
@@ -901,8 +901,8 @@ aiosqlite = [
     {file = "aiosqlite-0.17.0.tar.gz", hash = "sha256:f0e6acc24bc4864149267ac82fb46dfb3be4455f99fe21df82609cc6e6baee51"},
 ]
 async-timeout = [
-    {file = "async-timeout-4.0.0.tar.gz", hash = "sha256:7d87a4e8adba8ededb52e579ce6bc8276985888913620c935094c2276fd83382"},
-    {file = "async_timeout-4.0.0-py3-none-any.whl", hash = "sha256:f3303dddf6cafa748a92747ab6c2ecf60e0aeca769aee4c151adfce243a05d9b"},
+    {file = "async-timeout-4.0.1.tar.gz", hash = "sha256:b930cb161a39042f9222f6efb7301399c87eeab394727ec5437924a36d6eef51"},
+    {file = "async_timeout-4.0.1-py3-none-any.whl", hash = "sha256:a22c0b311af23337eb05fcf05a8b51c3ea53729d46fb5460af62bee033cec690"},
 ]
 asyncua = [
     {file = "asyncua-0.9.14.tar.gz", hash = "sha256:d89047f9a24ca339794d4dba93f5cf8d575723548623f74dc05b8fb23bd40aa6"},
