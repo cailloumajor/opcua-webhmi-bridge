@@ -291,7 +291,7 @@ flake8 = "*"
 
 [[package]]
 name = "flake8-unused-arguments"
-version = "0.0.8"
+version = "0.0.9"
 description = "flake8 extension to warn on unused function arguments"
 category = "dev"
 optional = false
@@ -811,7 +811,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.10"
-content-hash = "ef839e959ba06ba0812349b6b9b721a93f43cd0b86db296ec7b4f40ffd655ddb"
+content-hash = "3a96b0f48b46cc243b9e749988ab4f4aabe74cb2c4e85fa17da42590aa6ba399"
 
 [metadata.files]
 aiofiles = [
@@ -1076,8 +1076,8 @@ flake8-polyfill = [
     {file = "flake8_polyfill-1.0.2-py2.py3-none-any.whl", hash = "sha256:12be6a34ee3ab795b19ca73505e7b55826d5f6ad7230d31b18e106400169b9e9"},
 ]
 flake8-unused-arguments = [
-    {file = "flake8-unused-arguments-0.0.8.tar.gz", hash = "sha256:112df1ae775c93db828f3288bff5a326d8bda3ed4baf1b8877241ecd9ab4fe7a"},
-    {file = "flake8_unused_arguments-0.0.8-py3-none-any.whl", hash = "sha256:87cb011bb0accb6edb894f4301665635caad24ca803e8fb6d44398bf69a35230"},
+    {file = "flake8-unused-arguments-0.0.9.tar.gz", hash = "sha256:80e437b126a441ba048dfc9f01987fbec1ea8521e65c00681aecdf4c466fa27b"},
+    {file = "flake8_unused_arguments-0.0.9-py3-none-any.whl", hash = "sha256:b3b02aa5379e2edc7a3fc98e4bd12b2febf0573131a12fb7d698c04c0a8effda"},
 ]
 frozenlist = [
     {file = "frozenlist-1.2.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:977a1438d0e0d96573fd679d291a1542097ea9f4918a8b6494b06610dfeefbf9"},
