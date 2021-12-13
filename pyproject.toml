@@ -36,7 +36,7 @@ pytest-asyncio = "==0.16.0"
 pytest-httpserver = "==1.0.2"
 pytest-aiohttp = "0.3.0"
 types-click = "==7.1.8"
-pytest-timeout = "==2.0.1"
+pytest-timeout = "==2.0.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
