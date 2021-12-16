@@ -3,7 +3,7 @@
 import logging
 from itertools import chain, starmap
 from operator import itemgetter
-from typing import Any, Iterator, NamedTuple, Union
+from typing import Any, Iterator, NamedTuple
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from yarl import URL
@@ -14,7 +14,7 @@ from .messages import OPCDataMessage
 
 # A JSON scalar can be null, but data here comes from OPC-UA,
 # where a null value is not acceptable.
-JsonScalar = Union[str, int, float, bool]
+JsonScalar = str | int | float | bool
 Flattened = dict[str, JsonScalar]
 
 _logger = logging.getLogger(__name__)

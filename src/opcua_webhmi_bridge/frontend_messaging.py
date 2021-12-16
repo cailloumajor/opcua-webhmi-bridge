@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from json.decoder import JSONDecodeError
-from typing import Union
 
 import async_timeout
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
@@ -19,7 +18,7 @@ from .messages import (
     OPCStatusMessage,
 )
 
-OPCMessage = Union[OPCDataMessage, OPCStatusMessage]
+OPCMessage = OPCDataMessage | OPCStatusMessage
 
 HEARTBEAT_TIMEOUT = 5
 
