@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.0.4](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.3...v1.0.4) (2021-12-22)
+
+
+### Bug Fixes
+
+* **deps:** update dependency async-timeout to v4.0.2 ([72095c8](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/72095c813d8a27682ec6fee9d7c96d780e397960))
+
 ### [1.0.3](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.2...v1.0.3) (2021-11-15)
 
 
