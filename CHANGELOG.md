@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.0.5](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.4...v1.0.5) (2022-01-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency pydantic to v1.9.0 ([a221e04](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/a221e04db458e8b11ae10b4246ed95c1ec68f7cc))
+* resolve typing issue ([04161a3](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/04161a3f1288a12e3104a92b908c9363837da218))
+
 ### [1.0.4](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.3...v1.0.4) (2021-12-22)
 
 
