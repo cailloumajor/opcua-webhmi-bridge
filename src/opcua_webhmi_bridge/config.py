@@ -141,10 +141,10 @@ class Settings:
         except ValidationError as err:
             config_field = None
             first_error = err.errors()[0]
-            loc: str = first_error["loc"][0]
+            loc = first_error["loc"][0]
             if loc != "__root__":
                 settings_model = cast(BaseSettings, err.model)
-                config_field = settings_model.Config.env_prefix + loc
+                config_field = settings_model.Config.env_prefix + str(loc)
             raise ConfigError(config_field, first_error["msg"])
         except SettingsError as err:
             config_field = "!-UNKNOWN-!"
