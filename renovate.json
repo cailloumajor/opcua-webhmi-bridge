@@ -9,6 +9,10 @@
   "semanticCommits": "enabled",
   "packageRules": [
     {
+      "matchFiles": ["Dockerfile"],
+      "semanticCommitType": "fix"
+    },
+    {
       "matchDepTypes": ["dev-dependencies"],
       "automerge": true,
       "automergeType": "branch"
