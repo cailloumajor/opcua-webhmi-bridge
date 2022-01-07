@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.0.6](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.5...v1.0.6) (2022-01-07)
+
+
+### Bug Fixes
+
+* **deps:** update python docker tag to v3.10.1 ([a3cb70b](https://www.github.com/cailloumajor/opcua-webhmi-bridge/commit/a3cb70b944dc544889900668f147fc1eb8009567))
+
 ### [1.0.5](https://www.github.com/cailloumajor/opcua-webhmi-bridge/compare/v1.0.4...v1.0.5) (2022-01-01)
 
 
