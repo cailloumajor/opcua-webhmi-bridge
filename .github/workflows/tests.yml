@@ -142,14 +142,3 @@ jobs:
       - name: Print logs of services
         if: always()
         run: docker-compose -f tests/integration/docker-compose.yml logs
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.2.1
-        with:
-          image-ref: opcua-webhmi-bridge:integration-tests
-          format: template
-          template: "@/contrib/sarif.tpl"
-          output: trivy-results.sarif
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v1
-        with:
-          sarif_file: trivy-results.sarif
