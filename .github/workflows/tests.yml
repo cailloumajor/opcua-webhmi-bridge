@@ -1,13 +1,13 @@
 name: Tests and code quality
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
       - "renovate/**"
-  pull_request:
-    branches:
-      - main
 
 jobs:
   pre_job:
@@ -19,7 +19,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v3
         with:
           concurrent_skipping: same_content_newer
-          do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
+          do_not_skip: '["workflow_dispatch", "schedule"]'
           skip_after_successful_duplicate: true
   virtual-env:
     name: Build virtual environment
