@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     PortField = int
 else:
     OpcUrl = stricturl(tld_required=False, allowed_schemes={"opc.tcp"})
-    PortField = conint(gt=0, le=2 ** 16)
+    PortField = conint(gt=0, le=2**16)
 
 
 class ConfigError(ValueError):
