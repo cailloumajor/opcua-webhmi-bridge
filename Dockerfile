@@ -19,7 +19,7 @@ RUN set -eux ; \
     gosu --version; \
     gosu nobody true
 
-FROM python:3.10.1-bullseye AS builder
+FROM python:3.10.2-bullseye AS builder
 
 SHELL ["/bin/bash", "-Eeux", "-o", "pipefail", "-c"]
 
@@ -46,7 +46,7 @@ COPY src ./src
 RUN . .venv/bin/activate \
     && poetry install --no-ansi --no-dev --no-interaction
 
-FROM python:3.10.1-slim-bullseye AS final
+FROM python:3.10.2-slim-bullseye AS final
 
 LABEL maintainer="Arnaud Rocher <arnaud.roche3@gmail.com>"
 
