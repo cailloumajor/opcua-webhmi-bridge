@@ -32,7 +32,7 @@ jobs:
     outputs:
       python_version: ${{ steps.get-python-version.outputs.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Get Python version from Dockerfile
         id: get-python-version
         run: echo "::set-output name=python_version::$(grep 'FROM python.*AS final' Dockerfile | grep -oP 'python:\K[\d.]+')"
@@ -76,7 +76,7 @@ jobs:
     needs:
       - virtual-env
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ needs.virtual-env.outputs.python_version }}
         uses: actions/setup-python@v3
         with:
@@ -112,7 +112,7 @@ jobs:
     needs:
       - virtual-env
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ needs.virtual-env.outputs.python_version }}
         uses: actions/setup-python@v3
         with:
@@ -139,7 +139,7 @@ jobs:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Run integration tests
         run: docker-compose -f tests/integration/docker-compose.yml run --rm --use-aliases integration-tests
       - name: Print logs of services
