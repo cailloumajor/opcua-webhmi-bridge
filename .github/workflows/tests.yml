@@ -82,7 +82,7 @@ jobs:
         with:
           python-version: ${{ needs.virtual-env.outputs.python_version }}
       - name: Download virtual environment artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: virtual-environment
           path: /tmp
@@ -118,7 +118,7 @@ jobs:
         with:
           python-version: ${{ needs.virtual-env.outputs.python_version }}
       - name: Download virtual environment artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: virtual-environment
           path: /tmp
