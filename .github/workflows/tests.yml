@@ -64,7 +64,7 @@ jobs:
       - name: Archive virtual environment
         run: tar -acf /tmp/virtual-environment.tar.zst .venv/
       - name: Upload virtual environment artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: virtual-environment
           path: /tmp/virtual-environment.tar.zst
