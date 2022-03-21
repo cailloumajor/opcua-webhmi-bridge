@@ -50,7 +50,7 @@ jobs:
         with:
           poetry-version: ${{ steps.poetry-version.outputs.version }}
       - name: Set up Poetry cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pypoetry
           key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
@@ -96,7 +96,7 @@ jobs:
         with:
           extra_args: --all-files --verbose
       - name: Set up mypy cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/mypy
           key: ${{ runner.os }}-mypy-${{ hashFiles('src/opcua_webhmi_bridge/**/*.py') }}
