@@ -9,7 +9,8 @@
   "semanticCommits": "enabled",
   "packageRules": [
     {
-      "matchFiles": ["Dockerfile"],
+      "matchPackageNames": ["python"],
+      "matchManagers": ["dockerfile"],
       "semanticCommitType": "fix"
     },
     {
