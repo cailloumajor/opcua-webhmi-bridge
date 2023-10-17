@@ -20,21 +20,25 @@
 		"POETRY_VIRTUALENVS_IN_PROJECT": "true"
 	},
 
-	// Set *default* container specific settings.json values on container create.
-	"settings": {
-		"python.languageServer": "Pylance",
-		"python.pythonPath": ".venv/bin/python"
-	},
+	"customizations": {
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {
+				"python.languageServer": "Pylance",
+				"python.pythonPath": ".venv/bin/python"
+			},
 
-	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
-		"editorconfig.editorconfig",
-		"ms-azuretools.vscode-docker",
-		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"redhat.vscode-yaml",
-		"tamasfe.even-better-toml"
-	],
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"editorconfig.editorconfig",
+				"ms-azuretools.vscode-docker",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"redhat.vscode-yaml",
+				"tamasfe.even-better-toml"
+			]
+		}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
