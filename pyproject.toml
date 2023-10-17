@@ -2,7 +2,7 @@
 name = "opcua-webhmi-bridge"
 version = "1.0.6"
 description = "Bridge between OPC-UA server and web-based HMI"
-authors = ["Arnaud Rocher <arnaud.roche3@gmail.com>"]
+authors = [ "Arnaud Rocher <arnaud.roche3@gmail.com>" ]
 license = "MIT"
 
 [tool.poetry.scripts]
@@ -10,10 +10,10 @@ opcua-agent = "opcua_webhmi_bridge.main:app"
 
 [tool.poetry.dependencies]
 python = "~3.10"
-asyncua = "0.9.14"
-tenacity = "8.0.1"
-pydantic = {extras = ["dotenv"], version = "==1.9.0"}
-typer = "0.4.0"
+asyncua = "==0.9.14"
+tenacity = "==8.0.1"
+pydantic = { extras = [ "dotenv" ], version = "==1.9.0" }
+typer = "==0.4.0"
 aiohttp = "==3.8.1"
 yarl = "==1.7.2"
 async-timeout = "==4.0.2"
@@ -23,13 +23,13 @@ black = "==22.1.0"
 flake8 = "==4.0.1"
 isort = "==5.10.1"
 flake8-comprehensions = "==3.8.0"
-pep8-naming = "0.12.1"
+pep8-naming = "==0.12.1"
 flake8-bugbear = "==22.3.23"
 flake8-unused-arguments = "==0.0.9"
 mypy = "==0.942"
 pytest = "==7.1.1"
 pytest-cov = "==3.0.0"
-flake8-docstrings = "1.6.0"
+flake8-docstrings = "==1.6.0"
 flake8-bandit = "==3.0.0"
 pytest-mock = "==3.7.0"
 pytest-asyncio = "==0.18.3"
@@ -39,5 +39,5 @@ types-click = "==7.1.8"
 pytest-timeout = "==2.1.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = [ "poetry-core>=1.0.0" ]
 build-backend = "poetry.core.masonry.api"
