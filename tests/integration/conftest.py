@@ -67,7 +67,7 @@ class OPCServer:
 
     def ping(self) -> bool:
         try:
-            resp = requests.get(self._url("ping"))
+            resp = requests.get(self._url("ping"), timeout=1)
             resp.raise_for_status()
         except requests.RequestException:
             return False
@@ -75,15 +75,15 @@ class OPCServer:
             return True
 
     def reset(self) -> None:
-        resp = requests.delete(self._url("api"))
+        resp = requests.delete(self._url("api"), timeout=1)
         resp.raise_for_status()
 
     def change_node(self, kind: str) -> None:
-        resp = requests.post(self._url("api/node"), params={"kind": kind})
+        resp = requests.post(self._url("api/node"), params={"kind": kind}, timeout=1)
         resp.raise_for_status()
 
     def has_subscriptions(self) -> bool:
-        resp = requests.get(self._url("api/subscriptions"))
+        resp = requests.get(self._url("api/subscriptions"), timeout=1)
         return bool(resp.json())
 
 

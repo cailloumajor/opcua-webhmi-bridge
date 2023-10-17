@@ -28,7 +28,7 @@ class CentrifugoServer:
 
     def ping(self) -> bool:
         try:
-            resp = requests.get(self.url("health"))
+            resp = requests.get(self.url("health"), timeout=1)
             resp.raise_for_status()
         except requests.RequestException:
             return False
@@ -37,7 +37,7 @@ class CentrifugoServer:
 
     def _api_send(self, data: dict[str, Any]) -> Any:
         headers = {"Authorization": "apikey apikey"}
-        resp = requests.post(self.url("api"), headers=headers, json=data)
+        resp = requests.post(self.url("api"), headers=headers, json=data, timeout=1)
         resp.raise_for_status()
         return resp.json()
 
@@ -111,7 +111,7 @@ def test_smoketest(
         url = "http://localhost:8008/centrifugo/subscribe"
         data = {"channel": "heartbeat"}
         try:
-            resp = requests.post(url, json=data)
+            resp = requests.post(url, json=data, timeout=1)
             resp.raise_for_status()
         except requests.RequestException:
             return False

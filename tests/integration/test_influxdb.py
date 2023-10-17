@@ -49,11 +49,11 @@ class InfluxDB:
 
     def ping(self) -> bool:
         try:
-            resp = requests.get(self.url("ready"))
+            resp = requests.get(self.url("ready"), timeout=1)
             resp.raise_for_status()
         except requests.RequestException:
             return False
-        resp = requests.get(self.url("api/v2/setup"))
+        resp = requests.get(self.url("api/v2/setup"), timeout=1)
         return resp.json()["allowed"] is False
 
 
