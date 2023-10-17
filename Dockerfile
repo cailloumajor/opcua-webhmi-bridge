@@ -29,7 +29,7 @@ ENV PYTHONUNBUFFERED=1 \
 COPY poetry_install_vars.sh /usr/local/lib
 # hadolint ignore=SC1091
 RUN . /usr/local/lib/poetry_install_vars.sh \
-    && curl -sSL -o install-poetry.py "$POETRY_URL" \
+    && curl -sSL -o install-poetry.py https://install.python-poetry.org \
     && python install-poetry.py --yes --version="$POETRY_VERSION"
 ENV PATH="${POETRY_HOME}/bin:$PATH"
 
