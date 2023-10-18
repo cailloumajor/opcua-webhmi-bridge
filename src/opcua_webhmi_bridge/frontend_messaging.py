@@ -6,6 +6,7 @@ from json.decoder import JSONDecodeError
 
 import async_timeout
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
+from yarl import URL
 
 from .config import CentrifugoSettings
 from .library import AsyncTask, MessageConsumer
@@ -43,8 +44,9 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
 
     async def task(self) -> None:
         """Implements frontend signalization asynchronous task."""
+        publish_url = str(URL(self._config.api_url) / "publish")
         api_key = self._config.api_key.get_secret_value()
-        headers = {"Authorization": f"apikey {api_key}"}
+        headers = {"X-API-Key": api_key}
         async with ClientSession(
             headers=headers, timeout=ClientTimeout(total=10)
         ) as session:
@@ -55,15 +57,12 @@ class FrontendMessagingWriter(MessageConsumer[OPCMessage]):
                         message = await self._queue.get()
                 except asyncio.TimeoutError:
                     message = HeartBeatMessage()
-                command = {
-                    "method": "publish",
-                    "params": {
-                        "channel": message.message_type.centrifugo_channel,
-                        "data": message.frontend_data,
-                    },
+                data = {
+                    "channel": message.message_type.centrifugo_channel,
+                    "data": message.frontend_data,
                 }
                 try:
-                    async with session.post(self._config.api_url, json=command) as resp:
+                    async with session.post(publish_url, json=data) as resp:
                         resp.raise_for_status()
                         resp_data = await resp.json()
                         if (error := resp_data.get("error")) is not None:

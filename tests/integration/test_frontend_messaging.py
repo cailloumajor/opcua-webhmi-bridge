@@ -23,31 +23,37 @@ class CentrifugoServer:
     def __init__(self) -> None:
         self.root_url = URL(f"http://{CENTRIFUGO_HOST}:8000")
 
-    def url(self, endpoint: str) -> str:
-        return str(self.root_url / endpoint)
+    @property
+    def api_url(self) -> URL:
+        return self.root_url / "api"
+
+    @property
+    def ping_url(self) -> str:
+        return str(self.root_url / "health")
 
     def ping(self) -> bool:
         try:
-            resp = requests.get(self.url("health"), timeout=1)
+            resp = requests.get(self.ping_url, timeout=1)
             resp.raise_for_status()
         except requests.RequestException:
             return False
         else:
             return True
 
-    def _api_send(self, data: dict[str, Any]) -> Any:
-        headers = {"Authorization": "apikey apikey"}
-        resp = requests.post(self.url("api"), headers=headers, json=data, timeout=1)
+    def _api_send(self, method: str, data: dict[str, Any]) -> Any:
+        url = str(self.api_url / method)
+        headers = {"X-API-Key": "apikey"}
+        resp = requests.post(url, headers=headers, json=data, timeout=1)
         resp.raise_for_status()
         return resp.json()
 
     def history_remove(self, channel: str) -> None:
-        data = {"method": "history_remove", "params": {"channel": channel}}
-        self._api_send(data)
+        data = {"channel": channel}
+        self._api_send("history_remove", data)
 
     def history(self, channel: str) -> Any:
-        data = {"method": "history", "params": {"channel": channel, "limit": 10}}
-        return self._api_send(data)
+        data = {"channel": channel, "limit": 10}
+        return self._api_send("history", data)
 
 
 @pytest.fixture
@@ -121,7 +127,7 @@ def test_smoketest(
     envargs = dict(
         mandatory_env_args,
         CENTRIFUGO_API_KEY="apikey",
-        CENTRIFUGO_API_URL=centrifugo_server.url("api"),
+        CENTRIFUGO_API_URL=str(centrifugo_server.api_url),
     )
     process = main_process([], envargs)
     start_time = datetime.now()
