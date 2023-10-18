@@ -9,7 +9,7 @@ license = "MIT"
 opcua-agent = "opcua_webhmi_bridge.main:app"
 
 [tool.poetry.dependencies]
-python = "~3.10"
+python = "3.10.13"
 asyncua = "==0.9.14"
 tenacity = "==8.0.1"
 pydantic = { extras = [ "dotenv" ], version = "==1.9.0" }
