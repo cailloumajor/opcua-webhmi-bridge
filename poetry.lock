@@ -1259,22 +1259,17 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.4"
+version = "1.0.8"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pytest_httpserver-1.0.4-py3-none-any.whl", hash = "sha256:17396350d7c0dec067bc8c5ceca7e1137aa0e3395468a9c179bdfc5ede9027a5"},
-    {file = "pytest_httpserver-1.0.4.tar.gz", hash = "sha256:6de464ba5f74628d6182ebbdcb56783edf2c9b0caf598dc35c11f014f24a3f0d"},
+    {file = "pytest_httpserver-1.0.8-py3-none-any.whl", hash = "sha256:24cd3d9f6a0b927c7bfc400d0b3fda7442721b8267ce29942bf307b190f0bb09"},
+    {file = "pytest_httpserver-1.0.8.tar.gz", hash = "sha256:e052f69bc8a9073db02484681e8e47004dd1fb3763b0ae833bd899e5895c559a"},
 ]
 
 [package.dependencies]
 Werkzeug = ">=2.0.0"
-
-[package.extras]
-dev = ["autopep8", "coverage", "flake8 (>4.0.0)", "ipdb", "mypy", "pytest", "pytest-cov", "reno", "requests", "sphinx", "sphinx_rtd_theme", "types-requests"]
-doc = ["reno", "sphinx", "sphinx_rtd_theme"]
-test = ["coverage", "flake8 (>4.0.0)", "mypy", "pytest", "pytest-cov", "requests", "types-requests"]
 
 [[package]]
 name = "pytest-mock"
@@ -1653,4 +1648,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "13f39e1222e5bd9a195c8c868c02cae3706fd6b222145b01c74eacd377cc09ca"
+content-hash = "4fdf1dde69c1a4daca3fa72055ba4867b3e4513f5810d7621e0d4e98f8ac22aa"
